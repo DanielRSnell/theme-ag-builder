@@ -1,0 +1,78 @@
+{% if params.media is not defined %}
+  This is the main settings page.
+{% else %}
+  <style>
+    #adminmenumain {
+      display: none !important;
+    }
+    
+    #wpfooter {
+      display: none !important;
+    }
+    
+    #wpadminbar {
+      display: none !important;
+    }
+    
+    .media-modal-close {
+      display: none !important;
+    }
+    
+    .media-modal {
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+    }
+    
+    #wpcontent {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      function setupMediaListener() {
+        if (wp.media && wp.media.editor) {
+          var frame = wp.media.editor.get()
+    
+          if (frame) {
+            console.log('Media listener is now active')
+    
+            // Remove any previous listeners to avoid duplicate logging
+            frame.off('insert')
+    
+            frame.on('insert', function () {
+              var attachment = frame.state().get('selection').first().toJSON()
+    
+              // if parent window is available, send the attachment as media_message event
+              if (window.parent) {
+                window.parent.console.log('Sending Attachment', attachment)
+                window.parent.postMessage({ type: 'media_message', data: attachment }, '*')
+              }
+            })
+          } else {
+            console.log('Media frame not found, retrying...')
+            setTimeout(setupMediaListener, 500) // Retry after 500ms
+          }
+        } else {
+          console.log('wp.media or wp.media.editor not available')
+        }
+      }
+    
+      // Set up listener when the page loads
+      setupMediaListener()
+    
+      // Also set up listener when wp.media.editor.open is called
+      var originalOpen = wp.media.editor.open
+      wp.media.editor.open = function () {
+        originalOpen.apply(this, arguments)
+        console.log('wp.media.editor.open was called')
+        setupMediaListener()
+      }
+    
+      console.log('Script loaded and ready')
+    })
+  </script>
+{% endif %}

@@ -1,0 +1,496 @@
+<div id="tree-head" x-show="tab === null || tab === 'attributes'" x-on:click="onChangeTab('attributes')">
+  <div id="box-title">
+    <span>Attributes</span>
+    <div class="attribute-tag">
+      <span class="attribute_count" x-text="selected_context.length"></span>
+    </div>
+  </div>
+  <div class="editor-actions">
+    <a href="#" id="editor-sort" x-bind:class="tab === 'attributes' ? 'rotate-icon' : ''">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12.1717 12.0005L9.34326 9.17203L10.7575 7.75781L15.0001 12.0005L10.7575 16.2431L9.34326 14.8289L12.1717 12.0005Z"></path>
+      </svg>
+    </a>
+  </div>
+</div>
+
+<div x-show="tab === 'attributes'" x-collapse>
+  <div class="relative" x-data="attributesComponent">
+    <div class="small resource-options-box">
+      <div class="resource-options mb-2">
+        <template x-if="!isEditing">
+          <select class="form-select form-select-sm" x-model="selectedAttribute" x-on:click="refreshAttributes" x-on:change="onAttributeChange">
+            <option value="">Select an attribute</option>
+            <template x-for="attr in selected_context">
+              <option x-bind:value="attr.key" x-text="attr.key" :selected="attr.key === selectedAttribute"></option>
+            </template>
+          </select>
+        </template>
+        <template x-if="isEditing">
+          <div class="d-flex gap-2">
+            <input type="text" class="form-control form-control-sm" x-model="selectedAttribute" />
+            <button class="btn btn-primary btn-sm" x-on:click="updateAttributeKey()">Save</button>
+          </div>
+        </template>
+        <div class="agnostic-icon-group">
+          <div class="agnostic-icon" x-on:click="onAddNewAttribute()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+              <path d="M11 11V7H13V11H17V13H13V17H11V13H7V11H11ZM12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20Z"></path>
+            </svg>
+          </div>
+          <div class="agnostic-icon" x-show="selectedAttribute" x-on:click="toggleEditing()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6.41421 15.89L16.5563 5.74785L15.1421 4.33363L5 14.4758V15.89H6.41421ZM7.24264 17.89H3V13.6473L14.435 2.21231C14.8256 1.82179 15.4587 1.82179 15.8492 2.21231L18.6777 5.04074C19.0682 5.43126 19.0682 6.06443 18.6777 6.45495L7.24264 17.89ZM3 19.89H21V21.89H3V19.89Z"></path>
+            </svg>
+          </div>
+          <div class="agnostic-icon" x-show="selectedAttribute" x-on:click="removeAttribute()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 6H22V8H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V8H2V6H7V3C7 2.44772 7.44772 2 8 2H16C16.5523 2 17 2.44772 17 3V6ZM18 8H6V20H18V8ZM9 11H11V17H9V11ZM13 11H15V17H13V11ZM9 4V6H15V4H9Z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-box input-group input-group-sm mb-2" x-show="addNewAttribute">
+        <input type="text" class="form-control" x-model="newAttributeKey" placeholder="Attribute name" />
+        <button class="btn btn-primary btn-sm" x-on:click="addAttribute()">Add</button>
+      </div>
+    </div>
+
+    <!-- Ace Editor -->
+    <div class="editor-container-attributes" x-show="selectedAttribute">
+      <div class="editor-attributes">
+        <div id="attributes_ace_editor" class="editor-content"></div>
+      </div>
+    </div>
+    <div class="editor-container-attributes" x-show="!selectedAttribute">
+      <div class="editor-attributes">
+        <div id="plain_attributes_ace_editor" class="editor-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .relative {
+    position: relative;
+  }
+  
+  .editor-container {
+    height: 300px; /* Set a fixed height for the container */
+    overflow: hidden; /* Hide any overflowing content */
+  }
+  
+  .editor-content {
+    height: 100%; /* Make the editor content fill the container */
+    overflow: auto; /* Enable scrolling for the editor content */
+  }
+  
+  #attributes_ace_editor,
+  #plain_attributes_ace_editor {
+    height: 100%; /* Make the editor fill the editor content */
+  }
+  
+  .agnostic-icon-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: end;
+  }
+  
+  .attribute-tag:has(span:not(:empty)) {
+    background: rgba(254, 239, 137, 0.5);
+    border: 1px solid rgb(254, 239, 137);
+    color: rgb(253, 224, 70);
+    padding: 2px 5px;
+    border-radius: 5px;
+  }
+  
+  .bottom-box {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    background: #191a29;
+    z-index: 100;
+  }
+  
+  #attributes_ace_editor {
+    height: 100%;
+  }
+  
+  #plain_attributes_ace_editor {
+    height: 100%;
+  }
+  
+  .btn-sm {
+    padding-block: 0.25rem;
+    padding-inline: 0.5rem;
+  }
+  
+  .resource-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .agnostic-icon {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+  
+  .resource-options-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+  .editor-container-attributes {
+    height: 300px; /* Set a fixed height for the container */
+    overflow: auto; /* Enable scrolling for the container */
+  }
+  
+  #plain_attributes_ace_editor {
+    height: 100%; /* Make the editor fill the container */
+  }
+</style>
+
+<script>
+  // Initialize Ace Editor for attributes
+  const attributesEditorElement = document.getElementById('attributes_ace_editor')
+  const attributesAceEditor = ace.edit(attributesEditorElement)
+  attributesAceEditor.setTheme('ace/theme/tomorrow_night_bright')
+  attributesAceEditor.setOptions({
+    showPrintMargin: false,
+    highlightActiveLine: false,
+    showPrintMargin: false,
+    wrap: true,
+    mode: 'ace/mode/javascript',
+    tabSize: 0,
+    useSoftTabs: false,
+    maxwidth: 300,
+    enableBasicAutocompletion: true,
+    enableLiveAutocompletion: true,
+    enableEmmet: true,
+    showGutter: false,
+    enableSnippets: true,
+    enableAutoIndent: false,
+    indentedSoftWrap: false,
+    displayIndentGuides: false
+  })
+  
+  // set padding for editor top / bottom
+  attributesAceEditor.renderer.setScrollMargin(18, 18)
+  
+  // remove annotations from the editor
+  attributesAceEditor.getSession().setUseWorker(false)
+  
+  // Watch for changes in the Ace Editor session
+  attributesAceEditor.getSession().on('change', function () {
+    console.log('Attributes Ace Editor session changed')
+    console.log('window.active_attribute:', window.active_attribute)
+    console.log('window.active_selector:', window.active_selector)
+  
+    // Get the value of the editor (the value for the selected attribute)
+    const value = attributesAceEditor.getValue()
+  
+    // Update the selected attribute value
+    const element = doc.querySelector(window.active_selector)
+    if (element && window.active_attribute) {
+      element.setAttribute(window.active_attribute, value)
+    }
+  
+    // iframe preview update
+    const preview = document.getElementById('previewiframe')
+    const previewDoc = preview.contentDocument || preview.contentWindow.document
+    const previewElement = previewDoc.querySelector(window.active_selector)
+    if (previewElement && window.active_attribute) {
+      previewElement.setAttribute(window.active_attribute, value)
+    }
+  
+    // now update the selected context
+    const index = window.selected_context.findIndex((attr) => attr.key === window.active_attribute)
+    if (index !== -1) {
+      window.selected_context[index].value = value
+    }
+  })
+  
+  // Initialize Ace Editor for plain attributes
+  const plainAttributesEditorElement = document.getElementById('plain_attributes_ace_editor')
+  const plainAttributesAceEditor = ace.edit(plainAttributesEditorElement)
+  plainAttributesAceEditor.setTheme('ace/theme/tomorrow_night_bright')
+  plainAttributesAceEditor.setOptions({
+    showPrintMargin: false,
+    highlightActiveLine: false,
+    showPrintMargin: false,
+    wrap: true,
+    mode: 'ace/mode/javascript',
+    tabSize: 0,
+    useSoftTabs: false,
+    maxwidth: 300,
+    enableBasicAutocompletion: true,
+    enableLiveAutocompletion: true,
+    enableEmmet: true,
+    showGutter: false,
+    enableSnippets: true,
+    enableAutoIndent: false,
+    indentedSoftWrap: false,
+    displayIndentGuides: false
+  })
+  
+  // set padding for editor top / bottom
+  plainAttributesAceEditor.renderer.setScrollMargin(18, 18)
+  plainAttributesAceEditor.getSession().setUseWorker(false)
+  
+  plainAttributesAceEditor.getSession().on('change', function () {
+    console.log('Plain Attributes Ace Editor session changed')
+    console.log('window.active_selector:', window.active_selector)
+  
+    // Get the value of the editor (the list of attributes)
+    const value = plainAttributesAceEditor.getValue()
+  
+    // Remove all double quotes from the string
+    const attributes = value.replace(/"/g, '')
+  
+    // Split by "---" to separate each attribute
+    const attributeArray = attributes.split('---').map((attr) => attr.trim())
+  
+    console.log('Old Attributes:', attributes)
+    console.log('Attribute Array:', attributeArray)
+  
+    // Function to convert the attribute array to an array of objects
+    function convertAttributesToArray(attributeArray) {
+      const attributesArray = []
+  
+      for (let i = 0; i < attributeArray.length; i++) {
+        const attribute = attributeArray[i]
+        const equalIndex = attribute.indexOf('=')
+  
+        if (equalIndex > -1) {
+          const key = attribute.substring(0, equalIndex).trim()
+          const value = attribute.substring(equalIndex + 1).trim()
+          attributesArray.push({ key, value })
+        }
+      }
+  
+      return attributesArray
+    }
+  
+    const new_attributes = convertAttributesToArray(attributeArray)
+    console.log('New Attributes:', new_attributes)
+  
+    // Update window.selected_context and the active element's attributes
+    window.selected_context = new_attributes
+    console.log('Attributes:', window.selected_context)
+  
+    const excludedAttributes = ['class', 'src', 'srcset', 'href', 'alt', 'title', 'type', 'rel', 'target', 'width', 'height', 'style', 'data-src', 'data-srcset', 'sizes', 'media', 'poster', 'preload', 'autoplay', 'loop', 'muted', 'controls', 'playsinline', 'readonly', 'disabled', 'checked', 'selected', 'multiple', 'required', 'placeholder', 'autocomplete', 'autofocus', 'min', 'max', 'step', 'pattern', 'maxlength', 'minlength', 'size', 'rows', 'cols']
+  
+    // Update the active element's attributes
+    const element = doc.querySelector(window.active_selector)
+    if (element) {
+      // Remove non-excluded attributes
+      Array.from(element.attributes).forEach((attr) => {
+        if (!excludedAttributes.includes(attr.name)) {
+          //   element.removeAttribute(attr.name);
+        }
+      })
+  
+      // Set the new attributes
+      window.selected_context.forEach((attr) => {
+        if (!excludedAttributes.includes(attr.key)) {
+          console.log('Setting attribute item: ', attr.key, attr.value)
+          //   element.setAttribute(attr.key, attr.value);
+        }
+      })
+    }
+  
+    // iframe preview update
+    const preview = document.getElementById('previewiframe')
+    const previewDoc = preview.contentDocument || preview.contentWindow.document
+    const previewElement = previewDoc.querySelector(window.active_selector)
+    if (previewElement) {
+      // Remove non-excluded attributes
+      Array.from(previewElement.attributes).forEach((attr) => {
+        if (!excludedAttributes.includes(attr.name)) {
+          //   previewElement.removeAttribute(attr.name);
+        }
+      })
+  
+      // Set the new attributes
+      window.selected_context.forEach((attr) => {
+        if (!excludedAttributes.includes(attr.key)) {
+          //   previewElement.setAttribute(attr.key, attr.value);
+        }
+      })
+    }
+  })
+  
+  function attributesComponent() {
+    return {
+      selected_context: [],
+      selectedAttribute: '',
+      selectedAttributeKey: '',
+      newAttributeKey: '',
+      addNewAttribute: false,
+      isEditing: false,
+  
+      init() {
+        this.$watch('tab', (value) => {
+          if (value === 'attributes') {
+            this.refreshAttributes()
+          }
+        })
+      },
+  
+      resetState() {
+        this.selectedAttribute = ''
+        this.selectedAttributeKey = ''
+        this.newAttributeKey = ''
+        this.addNewAttribute = false
+        this.isEditing = false
+      },
+  
+      onAddNewAttribute() {
+        this.addNewAttribute = !this.addNewAttribute
+      },
+  
+      refreshAttributes() {
+        this.selected_context = window.selected_context
+      },
+  
+      dispatchAttributeCountUpdate() {
+        this.refreshAttributes()
+        setTimeout(() => {
+          const element = document.querySelector('.attribute_count')
+          if (element) {
+            element.innerText = this.selected_context.length
+          }
+        }, 10)
+      },
+  
+      addAttribute() {
+        this.refreshAttributes()
+        console.log('Adding attribute Start', this.newAttributeKey)
+        if (this.newAttributeKey) {
+          console.log('Adding attribute')
+          const update_items = this.selected_context
+          console.log('Checking update_items', update_items)
+          update_items.push({ key: this.newAttributeKey, value: '' })
+  
+          this.selected_context = update_items
+          // update window context
+          window.selected_context = update_items
+          console.log('Adding attribute End', this.selected_context)
+          this.addNewAttribute = false
+  
+          // now make it active
+          let event = { target: { value: this.newAttributeKey } }
+          this.newAttributeKey = ''
+          this.refreshAttributes()
+          console.log(event, 'This is event data')
+          this.onAttributeChange(event)
+          console.log('Attributes Ace Editor session changed', attributesAceEditor.getValue())
+          setTimeout(() => {
+            // clear the editor
+            attributesAceEditor.setValue('')
+            console.log('Attributes Ace Editor session changed', attributesAceEditor.getValue())
+            this.dispatchAttributeCountUpdate()
+          }, 10)
+        }
+      },
+  
+      removeAttribute() {
+        const element = doc.querySelector(window.active_selector)
+        console.log('Removing attribute', this.selectedAttribute, element, this.selected_context)
+        if (element && this.selectedAttribute) {
+          element.removeAttribute(this.selectedAttribute)
+          const index = this.selected_context.findIndex((attr) => attr.key === this.selectedAttribute)
+          if (index !== -1) {
+            this.selected_context.splice(index, 1)
+            this.selectedAttribute = ''
+            this.selectedAttributeKey = ''
+            attributesAceEditor.setValue('', -1)
+            window.active_attribute = ''
+            window.selected_context = this.selected_context
+            this.dispatchAttributeCountUpdate()
+          }
+        }
+      },
+  
+      onAttributeChange(event) {
+        const selected = event.target.value
+        const selectedAttr = this.selected_context.find((attr) => attr.key === selected)
+  
+        console.log('Selected Attribute:', selected, selectedAttr)
+  
+        if (selectedAttr) {
+          this.selectedAttribute = selected
+          this.selectedAttributeKey = this.selectedAttribute
+          window.active_attribute = this.selectedAttribute
+          attributesAceEditor.setValue(selectedAttr.value, -1)
+        } else {
+          if (this.selectedAttribute !== '') {
+            // If the default option is selected, don't clear the attributes
+            attributesAceEditor.setValue('', -1)
+            this.selectedAttribute = ''
+            this.selectedAttributeKey = ''
+            window.active_attribute = ''
+          } else {
+            // Reset state if selectedAttribute is already blank
+            this.resetState()
+  
+            // Delay execution by 10 milliseconds
+            setTimeout(() => {
+              const element = doc.querySelector(window.active_selector)
+              generateAttributesContext(element)
+            }, 10)
+          }
+        }
+      },
+  
+      updateAttributeKey() {
+        console.log(this.selectedAttribute, 'active_attribute:', window.active_attribute)
+  
+        const element = doc.querySelector(window.active_selector)
+  
+        console.log(window.active_attribute, 'selectedAttribute:', this.selectedAttribute, 'element:', element, 'active_selector:', window.active_selector, 'attributesAceEditor:', attributesAceEditor.getValue())
+  
+        if (element && window.active_attribute) {
+          const existingIndex = this.selected_context.findIndex((attr) => attr.key === this.selectedAttribute)
+          if (existingIndex !== -1) {
+            return
+          }
+  
+          element.removeAttribute(window.active_attribute)
+          // if there is no value set as an empty string
+  
+          if (attributesAceEditor.getValue() === '') {
+            element.setAttribute(this.selectedAttribute, '')
+          } else {
+            element.setAttribute(this.selectedAttribute, attributesAceEditor.getValue())
+          }
+  
+          const index = this.selected_context.findIndex((attr) => attr.key === window.active_attribute)
+  
+          if (index !== -1) {
+            this.selected_context[index].key = this.selectedAttribute
+            this.selectedAttributeKey = this.selectedAttribute
+            window.active_attribute = this.selectedAttribute
+          }
+        }
+  
+        this.toggleEditing()
+      },
+  
+      toggleEditing() {
+        this.isEditing = !this.isEditing
+      }
+    }
+  }
+</script>

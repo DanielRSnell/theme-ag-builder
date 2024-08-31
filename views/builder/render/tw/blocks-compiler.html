@@ -1,0 +1,176 @@
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+      window.defaultTheme = tailwind.defaultTheme;
+      window.colors = tailwind.colors;
+
+      async function dynamicImport(module) {
+        try {
+          const imported = await import(`https://cdn.skypack.dev/${module}`);
+          console.log(`Successfully resolved plugin: ${module}`);
+          return imported.default;
+        } catch (error) {
+          console.error(`Failed to resolve plugin: ${module}`, error);
+          return null;
+        }
+      }
+
+      function transformConfig(configString) {
+        return configString.replace(
+          /require\(['"](.*?)['"]\)/g,
+          (match, p1) => `await dynamicImport('${p1}')`
+        );
+      }
+
+      let lastGeneratedCSS = "";
+
+      function updateCSS(css) {
+        if (css === lastGeneratedCSS) {
+          return;
+        }
+
+        const existingStyle = document.getElementById("generated-tailwind-css");
+        if (existingStyle) {
+          existingStyle.textContent = css;
+        } else {
+          const style = document.createElement("style");
+          style.id = "generated-tailwind-css";
+          style.textContent = css;
+          document.head.appendChild(style);
+        }
+
+        lastGeneratedCSS = css;
+        console.log("Tailwind CSS updated");
+      }
+
+      function isTailwindStyleTag(node) {
+        return (
+          node.nodeName === "STYLE" &&
+          node.textContent.includes(
+            "/* ! tailwindcss v3.4.4 | MIT License | https://tailwindcss.com */"
+          )
+        );
+      }
+
+      function setupStyleObservation() {
+        let tailwindStyleTag = null;
+
+        const observer = new MutationObserver((mutations) => {
+          let shouldCheckContent = false;
+
+          for (const mutation of mutations) {
+            if (mutation.type === "childList") {
+              const addedNodes = Array.from(mutation.addedNodes);
+              const newTailwindTag = addedNodes.find(isTailwindStyleTag);
+              if (newTailwindTag) {
+                tailwindStyleTag = newTailwindTag;
+                shouldCheckContent = true;
+                break;
+              }
+            } else if (
+              mutation.type === "characterData" &&
+              mutation.target.nodeName === "#text" &&
+              isTailwindStyleTag(mutation.target.parentNode)
+            ) {
+              tailwindStyleTag = mutation.target.parentNode;
+              shouldCheckContent = true;
+              break;
+            }
+          }
+
+          if (shouldCheckContent && tailwindStyleTag) {
+            const currentContent = tailwindStyleTag.textContent;
+            if (currentContent !== lastGeneratedCSS) {
+              console.log("Tailwind style content changed, updating...");
+              updateCSS(currentContent);
+            }
+          }
+        });
+
+        observer.observe(document.head, {
+          childList: true,
+          characterData: true,
+          subtree: true,
+        });
+
+        console.log("Started observing head for Tailwind style changes");
+
+        tailwindStyleTag = Array.from(
+          document.head.getElementsByTagName("style")
+        ).find(isTailwindStyleTag);
+        if (tailwindStyleTag) {
+          console.log("Initial Tailwind style tag found, updating content");
+          updateCSS(tailwindStyleTag.textContent);
+        } else {
+          console.log("No initial Tailwind style tag found");
+        }
+      }
+
+      async function initializeTailwind() {
+        try {
+          console.log("Starting to resolve Tailwind configuration and plugins...");
+          let twConfig, twCSS;
+
+          // Server-side rendered values (will be replaced by actual values during server-side rendering)
+          const serverTwConfig = `{{ function('get_user_tailwind_config_string')|e('js') }}`;
+          const serverTwCSS = `{{ function('get_user_tailwind_css_string')|e('js') }}`;
+
+          if (typeof window !== 'undefined' && window.parent && window.parent.AgnosticEditorStore) {
+            // Client-side: Use values from AgnosticEditorStore if available
+            twConfig = window.parent.AgnosticEditorStore.config;
+            twCSS = window.parent.AgnosticEditorStore.css;
+          } else {
+            // Server-side or fallback: Use server-rendered values
+            twConfig = serverTwConfig;
+            twCSS = serverTwCSS;
+          }
+
+          console.log("User config:", twConfig);
+          const transformedConfigString = transformConfig(twConfig);
+          console.log("Transformed config:", transformedConfigString);
+
+          const configFunction = new Function(
+            "colors",
+            "defaultTheme",
+            "dynamicImport",
+            `
+            return (async () => {
+              const module = {};
+              ${transformedConfigString}
+              return module.exports;
+            })();
+          `
+          );
+
+          const config = await configFunction(
+            colors,
+            defaultTheme,
+            dynamicImport
+          );
+          tailwind.config = config;
+          console.log("Tailwind config successfully set:", tailwind.config);
+
+          setupStyleObservation();
+
+          // Remove existing user style tag if it exists
+          const existingUserStyleTag = document.querySelector('style[type="text/tailwindcss"]');
+          if (existingUserStyleTag) {
+            existingUserStyleTag.remove();
+          }
+
+          const userStyleTag = document.createElement("style");
+          userStyleTag.setAttribute("type", "text/tailwindcss");
+          userStyleTag.textContent = twCSS;
+          document.head.appendChild(userStyleTag);
+
+          console.log("Tailwind initialization complete");
+        } catch (error) {
+          console.error("Error in Tailwind initialization:", error);
+        }
+      }
+
+      window.parent.refreshBlocksTW = initializeTailwind;
+      initializeTailwind();
+      window.changeTheme = function (theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+      };
+    </script>

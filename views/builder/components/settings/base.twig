@@ -1,0 +1,9 @@
+<div x-show="tab === 'Settings'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-x-full" x-transition:enter-end="opacity-100 transform translate-x-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 transform translate-x-0" x-transition:leave-end="opacity-0 transform -translate-x-full" x-data="settingsManager()" class="mt-[var(--maintoolbar-height)] absolute top-0 left-0 z-[9999] h-screen bg-base-200 text-base-content flex overflow-hidden w-1/2">
+  <!-- Vertical Tab Navigation -->
+  {{ include('builder/components/settings/sidebar.twig') }}
+
+  <!-- Tab Content -->
+  {{ include('builder/components/settings/router.twig') }}
+</div>
+
+{{ include('builder/components/settings/store.twig') }}

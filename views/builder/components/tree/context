@@ -1,0 +1,135 @@
+<script>
+  window.addEventListener("load", function () {
+    const treeContainer = document.getElementById("agnostic-tree-wrap");
+
+    const menuItems = [
+      { property: "edit-properties", inner: "Edit Properties", shortcut: "⌘E" },
+      { property: "copy-content", inner: "Copy", shortcut: "⌘⇧C" },
+      { property: "cut-content", inner: "Cut", shortcut: "⌘⇧X" },
+      { property: "paste-content", inner: "Paste", shortcut: "⌘⇧V" },
+      { property: "paste-replace", inner: "Paste & Replace", shortcut: "⌘⇧R" },
+      { property: "duplicate-item", inner: "Duplicate", shortcut: "⌘D" },
+      { property: "delete-item", inner: "Delete", shortcut: "⌘⌫" },
+      { property: "move-up", inner: "Move Up", shortcut: "⌘⇧↑" },
+      { property: "move-down", inner: "Move Down", shortcut: "⌘⇧↓" },
+      { property: "move-next", inner: "Move Next", shortcut: "⌘→" },
+      { property: "move-previous", inner: "Move Previous", shortcut: "⌘←" },
+      { property: "select-parent", inner: "Select Parent", shortcut: "⌘↑" },
+      { property: "select-child", inner: "Select Child", shortcut: "⌘↓" },
+    ];
+
+    const hideChoice = ["edit-properties"];
+
+    treeContainer.addEventListener("contextmenu", function (event) {
+      event.preventDefault();
+      const treeBox = event.target.closest(".tree-box");
+      if (treeBox) {
+        createContextMenu(treeBox);
+      }
+    });
+
+    document.addEventListener("click", function (event) {
+      const contextMenu = document.querySelector(".agnostic-context-menu");
+      if (contextMenu && !contextMenu.contains(event.target)) {
+        contextMenu.remove();
+      }
+    });
+
+    function createContextMenu(treeBox) {
+      const existingMenu = document.querySelector(".agnostic-context-menu");
+      if (existingMenu) {
+        existingMenu.remove();
+      }
+
+      const contextMenu = document.createElement("div");
+      contextMenu.className =
+        "agnostic-context-menu menu bg-base-200/30 backdrop-blur-md w-56 rounded-box shadow-lg shadow-base-100/30";
+
+      const rect = treeBox.getBoundingClientRect();
+      contextMenu.style.position = "absolute";
+      contextMenu.style.left = `${rect.left}px`;
+      contextMenu.style.top = `${rect.bottom}px`;
+
+      const selector = treeBox.getAttribute("data-selector");
+
+      menuItems.forEach(function (item, index) {
+        if (!hideChoice.includes(item.property)) {
+          const menuItem = document.createElement("li");
+          menuItem.setAttribute("data-tree-item-agnostic", item.property);
+
+          const menuLink = document.createElement("a");
+          menuLink.className = "flex justify-between items-center";
+          menuLink.innerHTML = `
+        <span>${item.inner}</span>
+        <span class="badge badge-sm">${item.shortcut}</span>
+      `;
+
+          menuLink.addEventListener("click", function (e) {
+            e.preventDefault();
+            handleActionItemClick(item.property, selector);
+            contextMenu.remove();
+          });
+
+          menuItem.appendChild(menuLink);
+          contextMenu.appendChild(menuItem);
+
+          if ((index + 1) % 3 === 0 && index !== menuItems.length - 1) {
+            const separator = document.createElement("li");
+            separator.className = "divider h-[0.5px]";
+            contextMenu.appendChild(separator);
+          }
+        }
+      });
+
+      document.body.appendChild(contextMenu);
+    }
+
+    // document.addEventListener("keydown", handleKeyboardShortcut);
+  });
+
+  function handleActionItemClick(action, selector) {
+    console.log("Clicked action:", action, "for selector:", selector);
+
+    switch (action) {
+      case "edit-properties":
+        editProperties(selector);
+        break;
+      case "copy-content":
+        onCopyElement(selector);
+        break;
+      case "cut-content":
+        onCutElement(selector);
+        break;
+      case "paste-content":
+        onPasteElement(selector);
+        break;
+      case "paste-replace":
+        onPasteReplace(selector);
+        break;
+      case "duplicate-item":
+        onDuplicateElement(selector);
+        break;
+      case "delete-item":
+        onDeleteElement(selector);
+        break;
+      case "move-up":
+        onMovePrev(selector);
+        break;
+      case "move-down":
+        onMoveNext(selector);
+        break;
+      case "move-next":
+        onMoveNext(selector);
+        break;
+      case "move-previous":
+        onMovePrev(selector);
+        break;
+      default:
+        console.log("Unknown action:", action);
+    }
+  }
+
+  function editProperties(selector) {
+    console.log("Edit Properties clicked for", selector);
+  }
+</script>

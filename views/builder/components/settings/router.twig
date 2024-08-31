@@ -1,0 +1,413 @@
+<div
+  class="w-3/4 h-full p-4 overflow-y-auto"
+  x-show="settings_tab == 'Routing'"
+>
+  <!-- Front Page -->
+  <div
+    x-show="activeTab === 'front_page'"
+    class="space-y-4"
+  >
+    <select
+      x-model="routes.front_page"
+      class="w-full select select-sm select-bordered"
+      @change="updateRoute('front_page')"
+    >
+      <option value="">Select a view</option>
+      <template
+        x-for="(label, value) in viewOptions"
+        :key="value"
+      >
+        <option
+          :value="value"
+          x-text="label"
+        ></option>
+      </template>
+    </select>
+  </div>
+
+  <!-- Blog Page -->
+
+  <div
+    x-show="activeTab === 'blog_index'"
+    class="space-y-4"
+  >
+    <select
+      x-model="routes.blog_index"
+      class="w-full select select-sm select-bordered"
+      @change="updateBlogIndex()"
+    >
+      <option value="">Select a view</option>
+      <template
+        x-for="(label, value) in viewOptions"
+        :key="value"
+      >
+        <option
+          :value="value"
+          x-text="label"
+        ></option>
+      </template>
+    </select>
+  </div>
+
+  <!-- Global Partials -->
+  <div
+    x-show="activeTab === 'global_partials'"
+    class="space-y-4"
+  >
+    <template
+      x-for="(partial, index) in routes.global_partials"
+      :key="index"
+    >
+      <div class="flex items-center mb-2 space-x-2">
+        <select
+          x-model="partial.type"
+          class="flex-1 select select-sm select-bordered"
+          @change="updateRoute('global_partials')"
+        >
+          <option value="header">Header</option>
+          <option value="footer">Footer</option>
+          <option value="hook">Hook</option>
+        </select>
+        <select
+          x-model="partial.view"
+          class="flex-1 select select-sm select-bordered"
+          @change="updateRoute('global_partials')"
+        >
+          <option value="">Select a view</option>
+          <template
+            x-for="(label, value) in viewOptions"
+            :key="value"
+          >
+            <option
+              :value="value"
+              x-text="label"
+            ></option>
+          </template>
+        </select>
+        <input
+          x-show="partial.type === 'hook'"
+          x-model="partial.hook_name"
+          placeholder="Hook name"
+          class="flex-1 input input-sm input-bordered"
+          @input="updateRoute('global_partials')"
+        />
+        <button
+          class="btn btn-xs btn-circle btn-error"
+          @click="removeItem('global_partials', index)"
+        >
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    </template>
+    <button
+      class="btn btn-sm btn-primary"
+      @click="addItem('global_partials', {type: 'header', view: '', hook_name: ''})"
+    >
+      <i class="ri-add-line"></i> Add Partial
+    </button>
+  </div>
+
+  <!-- Post Type Views -->
+  <div
+    x-show="activeTab === 'post_types'"
+    class="space-y-4"
+  >
+    <template
+      x-for="(ptv, index) in routes.post_types"
+      :key="index"
+    >
+      <div class="flex items-center mb-2 space-x-2">
+        <select
+          x-model="ptv.post_type"
+          class="flex-1 select select-sm select-bordered"
+          @change="updateRoute('post_types')"
+        >
+          <option value="">Select a post type</option>
+          <template
+            x-for="(label, value) in postTypeOptions"
+            :key="value"
+          >
+            <option
+              :value="value"
+              x-text="label"
+            ></option>
+          </template>
+        </select>
+        <select
+          x-model="ptv.view"
+          class="flex-1 select select-sm select-bordered"
+          @change="updateRoute('post_types')"
+        >
+          <option value="">Select a view</option>
+          <template
+            x-for="(label, value) in viewOptions"
+            :key="value"
+          >
+            <option
+              :value="value"
+              x-text="label"
+            ></option>
+          </template>
+        </select>
+        <button
+          class="btn btn-xs btn-circle btn-error"
+          @click="removeItem('post_types', index)"
+        >
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    </template>
+    <button
+      class="btn btn-sm btn-primary"
+      @click="addItem('post_types', {post_type: '', view: ''})"
+    >
+      <i class="ri-add-line"></i> Add Post Type View
+    </button>
+  </div>
+
+  <!-- Archive Views -->
+  <div
+    x-show="activeTab === 'archives'"
+    class="space-y-4"
+  >
+    <template
+      x-for="(av, index) in routes.archives"
+      :key="index"
+    >
+      <div class="flex items-center mb-2 space-x-2">
+        <select
+          x-model="av.archive_type"
+          class="flex-1 select select-sm select-bordered"
+          @change="updateRoute('archives')"
+        >
+          <option value="">Select an archive type</option>
+          <template
+            x-for="(label, value) in archiveTypeOptions"
+            :key="value"
+          >
+            <option
+              :value="value"
+              x-text="label"
+            ></option>
+          </template>
+        </select>
+        <select
+          x-model="av.view"
+          class="flex-1 select select-sm select-bordered"
+          @change="updateRoute('archives')"
+        >
+          <option value="">Select a view</option>
+          <template
+            x-for="(label, value) in viewOptions"
+            :key="value"
+          >
+            <option
+              :value="value"
+              x-text="label"
+            ></option>
+          </template>
+        </select>
+        <button
+          class="btn btn-xs btn-circle btn-error"
+          @click="removeItem('archives', index)"
+        >
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    </template>
+    <button
+      class="btn btn-sm btn-primary"
+      @click="addItem('archives', {archive_type: '', view: ''})"
+    >
+      <i class="ri-add-line"></i> Add Archive View
+    </button>
+  </div>
+
+  <!-- Search Results -->
+  <div
+    x-show="activeTab === 'search_results'"
+    class="space-y-4"
+  >
+    <select
+      x-model="routes.search_results"
+      class="w-full select select-sm select-bordered"
+      @change="updateRoute('search_results')"
+    >
+      <option value="">Select a view</option>
+      <template
+        x-for="(label, value) in viewOptions"
+        :key="value"
+      >
+        <option
+          :value="value"
+          x-text="label"
+        ></option>
+      </template>
+    </select>
+  </div>
+
+  <!-- Error Page -->
+  <div
+    x-show="activeTab === 'error_page'"
+    class="space-y-4"
+  >
+    <select
+      x-model="routes.error_page"
+      class="w-full select select-sm select-bordered"
+      @change="updateRoute('error_page')"
+    >
+      <option value="">Select a view</option>
+      <template
+        x-for="(label, value) in viewOptions"
+        :key="value"
+      >
+        <option
+          :value="value"
+          x-text="label"
+        ></option>
+      </template>
+    </select>
+  </div>
+
+  <!-- Term Views -->
+  <div
+    x-show="activeTab === 'terms'"
+    class="space-y-4"
+  >
+    <template
+      x-for="(tv, index) in routes.terms"
+      :key="index"
+    >
+      <div class="flex items-center mb-2 space-x-2">
+        <select
+          x-model="tv.taxonomy"
+          class="flex-1 select select-sm select-bordered"
+          @change="updateRoute('terms')"
+        >
+          <option value="">Select a taxonomy</option>
+          <template
+            x-for="(label, value) in taxonomyOptions"
+            :key="value"
+          >
+            <option
+              :value="value"
+              x-text="label"
+            ></option>
+          </template>
+        </select>
+        <select
+          x-model="tv.view"
+          class="flex-1 select select-sm select-bordered"
+          @change="updateRoute('terms')"
+        >
+          <option value="">Select a view</option>
+          <template
+            x-for="(label, value) in viewOptions"
+            :key="value"
+          >
+            <option
+              :value="value"
+              x-text="label"
+            ></option>
+          </template>
+        </select>
+        <button
+          class="btn btn-xs btn-circle btn-error"
+          @click="removeItem('terms', index)"
+        >
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    </template>
+    <button
+      class="btn btn-sm btn-primary"
+      @click="addItem('terms', {taxonomy: '', view: ''})"
+    >
+      <i class="ri-add-line"></i> Add Term View
+    </button>
+  </div>
+
+  <!-- Single Views -->
+  <!-- Single Views -->
+  <div
+    x-show="activeTab === 'singles'"
+    class="space-y-4"
+  >
+    <template
+      x-for="(sv, index) in routes.singles"
+      :key="index"
+    >
+      <div class="flex items-center mb-2 space-x-2">
+        <select
+          x-model="sv.post_type"
+          class="flex-1 select select-sm select-bordered"
+          @change="updatePostOptions(index)"
+        >
+          <option value="">Select a post type</option>
+          <template
+            x-for="(label, value) in postTypeOptions"
+            :key="value"
+          >
+            <option
+              :value="value"
+              x-text="label"
+            ></option>
+          </template>
+        </select>
+        <div class="relative flex-1">
+          <input
+            x-model="sv.postSearch"
+            @input="filterPosts(index)"
+            @focus="showPostOptions(index)"
+            @blur="hidePostOptions(index)"
+            :placeholder="sv.post ? getPostLabel(sv.post) : 'Search and select a post...'"
+            class="w-full input input-sm input-bordered"
+          />
+          <div
+            x-show="sv.showPostOptions"
+            class="absolute z-10 w-full mt-1 overflow-auto shadow-lg bg-base-100 max-h-60"
+          >
+            <template
+              x-for="post in sv.filteredPosts"
+              :key="post.id"
+            >
+              <div
+                @mousedown.prevent="selectPost(index, post)"
+                class="p-2 cursor-pointer hover:bg-base-200"
+                x-text="post.title"
+              ></div>
+            </template>
+          </div>
+        </div>
+        <select
+          x-model="sv.view"
+          class="flex-1 select select-sm select-bordered"
+          @change="updateRoute('singles')"
+        >
+          <option value="">Select a view</option>
+          <template
+            x-for="(label, value) in viewOptions"
+            :key="value"
+          >
+            <option
+              :value="value"
+              x-text="label"
+            ></option>
+          </template>
+        </select>
+        <button
+          class="btn btn-xs btn-circle btn-error"
+          @click="removeItem('singles', index)"
+        >
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    </template>
+    <button
+      class="btn btn-sm btn-primary"
+      @click="addItem('singles', {post_type: '', post: '', view: '', postSearch: '', filteredPosts: [], showPostOptions: false})"
+    >
+      <i class="ri-add-line"></i> Add Single View
+    </button>
+  </div>
+</div>

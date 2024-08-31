@@ -1,0 +1,5 @@
+<div x-show="activeTab === 'components'">
+  <!-- Components content goes here -->
+  <h2 class="mb-4 text-xl font-bold">Components</h2>
+  <!-- Add your components list here -->
+</div>

@@ -1,0 +1,246 @@
+<script>
+require.config({
+  paths: {
+    vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs'
+  }
+})
+
+window.MonacoEnvironment = {
+  getWorkerUrl: function (workerId, label) {
+    return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+      self.MonacoEnvironment = {
+        baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/'
+      };
+      importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/base/worker/workerMain.js');`)}`
+  }
+}
+
+function initializeMonacoEditor(editorType) {
+  const config = window.AgnosticEditorStore.getEditorConfig(editorType)
+  const editorElement = document.getElementById(config.elementId)
+
+  if (!editorElement) {
+    console.error(`Editor element not found: ${config.elementId}`)
+    return null
+  }
+
+  var editor = monaco.editor.create(editorElement, config)
+
+  editor.onDidChangeModelContent((e) => {
+    if (e.isFlush) {
+      console.log('This is not a user change')
+      window.AgnosticEditorStore.onSystemEditorChange(editorType, editor.getValue())
+    } else {
+      console.log('User change')
+      window.AgnosticEditorStore.onEditorChange(editorType, editor.getValue())
+    }
+  })
+
+  editor.elementId = config.elementId;
+
+  window.AgnosticEditorStore.initializeEditor(editorType, editor)
+
+  return editor
+}
+
+function initializeEditors() {
+  defineMonacoTheme()
+  const editorTypes = Object.keys(window.AgnosticEditorStore.configs).filter((key) => key !== 'defaultOptions')
+
+  const editors = editorTypes.map((editorType) => initializeMonacoEditor(editorType))
+
+  window.updateMonacoEditorsTheme = function (theme) {
+    monaco.editor.setTheme(theme)
+  }
+
+  setTimeout(() => {
+    emmetMonaco.emmetHTML(monaco)
+  }, 1000)
+
+
+function defineMonacoTheme() {
+  monaco.editor.defineTheme('daisyDark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: '', foreground: 'F8F8F8', background: '0C1021' },
+      { token: 'comment', foreground: 'AEAEAE' },
+      { token: 'constant', foreground: 'D8FA3C' },
+      { token: 'entity', foreground: 'FF6400' },
+      { token: 'keyword', foreground: 'FBDE2D' },
+      { token: 'storage', foreground: 'FBDE2D' },
+      { token: 'string', foreground: '61CE3C' },
+      { token: 'support', foreground: '8DA6CE' },
+      { token: 'variable', foreground: 'FF6400' }
+    ],
+    colors: {
+      'editor.foreground': '#F8F8F8',
+      'editor.background': '#0C1021',
+      'editor.selectionBackground': '#253B76',
+      'editor.lineHighlightBackground': '#FFFFFF0F',
+      'editorCursor.foreground': '#FFFFFFA6',
+      'editorWhitespace.foreground': '#FFFFFF40'
+    }
+  })
+}
+
+  // Register a single completion provider for all editors
+  monaco.languages.registerCompletionItemProvider('html', {
+  provideCompletionItems: async function(model, position) {
+    const activeEditor = monaco.editor.getEditors().find(e => e.hasTextFocus());
+    if (!activeEditor) return { suggestions: [] };
+
+    const lineContent = model.getLineContent(position.lineNumber);
+    const wordUntilPosition = model.getWordUntilPosition(position);
+    const prefix = wordUntilPosition.word.toLowerCase();
+
+    console.log(`Getting suggestions for: ${prefix} in ${activeEditor.elementId}`);
+
+    let suggestions = [];
+
+    // Helper function to determine if the cursor is within a class attribute
+    function isInClassAttribute(lineContent, position) {
+      const classAttributePattern = /\bclass\s*=\s*["'][^"']*$/;
+      const substring = lineContent.substring(0, position.column - 1);
+      return classAttributePattern.test(substring);
+    }
+
+    switch (activeEditor.elementId) {
+      case 'class-manager-editor':
+        suggestions = await getTailwindSuggestions(prefix);
+        break;
+      case 'inner-html-editor':
+      case 'attributes-editor':
+        if (isInClassAttribute(lineContent, position)) {
+          suggestions = await getTailwindSuggestions(prefix);
+        }
+        break;
+      default:
+        suggestions = [];
+    }
+
+    return { suggestions: suggestions };
+  }
+});
+}
+
+function formatTailwindSuggestions(suggestions) {
+  return suggestions.map(suggestion => ({
+    label: suggestion.name,
+    kind: monaco.languages.CompletionItemKind.Keyword,
+    insertText: suggestion.name,
+    detail: suggestion.isVariant ? 'Variant' : 'Class',
+    documentation: {
+      value: `${suggestion.isVariant ? 'Variant' : 'Class'}: ${suggestion.name}${suggestion.color ? `\nColor: ${suggestion.color}` : ''}${suggestion.important ? '\nImportant' : ''}`,
+      isTrusted: true
+    },
+    sortText: suggestion.isVariant ? `2${suggestion.name}` : `1${suggestion.name}`
+  }));
+}
+
+// Updated function for getting Tailwind suggestions
+async function getTailwindSuggestions(prefix) {
+  try {
+    const suggestions = await getSuggestionList(prefix);
+    const formattedSuggestions = formatTailwindSuggestions(suggestions);
+    return formattedSuggestions;
+  } catch (error) {
+    console.error('Error getting Tailwind suggestions:', error);
+    return [];
+  }
+}
+
+async function getHTMLTagSuggestions(prefix) {
+  // Implement HTML tag suggestions
+  return [];
+}
+
+async function getHTMLAttributeSuggestions(prefix) {
+  // Implement HTML attribute suggestions
+  return [];
+}
+
+window.addEventListener('resize', function () {
+  monaco.editor.getEditors().forEach((editor) => editor.layout())
+})
+
+require(['vs/editor/editor.main'], function () {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEditors)
+  } else {
+    initializeEditors()
+  }
+})
+
+function defaultEditorConfigs() {
+    const defaultOptions = {
+      theme: "vs-dark",
+      fontSize: 10,
+      lineNumbers: "on",
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      automaticLayout: true,
+      wrappingStrategy: "advanced",
+      wordWrap: "on",
+      wrappingIndent: "indent",
+      folding: true,
+      renderLineHighlight: "none",
+      scrollbar: {
+        vertical: "hidden",
+        horizontal: "hidden",
+      },
+      padding: {
+        top: 4,
+        bottom: 4,
+      },
+      overviewRulerLanes: 0,
+      overviewRulerBorder: false,
+      tabSize: 0,
+      insertSpaces: false,
+    };
+
+    return {
+      defaultOptions,
+      classManager: {
+        language: "html",
+        elementId: "class-manager-editor",
+      },
+      innerHTML: {
+        language: "html",
+        elementId: "inner-html-editor",
+      },
+      phpEditor: {
+        language: "php",
+        elementId: "php-editor",
+      },
+      attributes: {
+        language: "html",
+        elementId: "attributes-editor",
+      },
+      config: {
+        language: "javascript",
+        elementId: "config-editor",
+      },
+      global_javascript: {
+        language: "javascript",
+        elementId: "global-javascript-editor",
+      },
+      css: {
+        language: "css",
+        elementId: "css-editor",
+      },
+      global_css: {
+        language: "css",
+        elementId: "global-css-editor",
+      },
+      context: {
+        language: "json",
+        elementId: "context-editor",
+      },
+      outerHTML: {
+        language: "html",
+        elementId: "outer-html-editor",
+      },
+    };
+  }
+</script>

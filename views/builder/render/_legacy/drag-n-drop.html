@@ -1,0 +1,121 @@
+<script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Function to generate a unique ID
+        function generateUniqueId() {
+          return 'sort-' + Math.random().toString(36).substr(2, 9)
+        }
+      
+        // Function to make an element and its children sortable
+        function makeSortable(element, depth = 0) {
+          // Skip certain elements that shouldn't be sortable
+          if (['SCRIPT', 'STYLE', 'HEAD', 'META', 'LINK', 'TITLE', 'BASE'].includes(element.tagName)) {
+            return
+          }
+      
+          // Add x-sort attribute to the element if it has children
+          if (element.children.length > 0) {
+            element.setAttribute('x-sort', '')
+            element.setAttribute('x-sort:group', `group-${depth}`)
+            element.setAttribute('x-sort.ghost', '')
+          }
+      
+          // Add x-sort:item attribute to the element itself
+          if (element !== document.body) {
+            element.setAttribute('x-sort:item', generateUniqueId())
+          }
+      
+          // Recursively make children sortable
+          Array.from(element.children).forEach((child) => makeSortable(child, depth + 1))
+        }
+      
+        // Start with the body element
+        makeSortable(document.body)
+      
+        // Add necessary Alpine.js and Sort plugin scripts if not already present
+        if (!document.querySelector('script[src*="alpinejs"]')) {
+          const alpineScript = document.createElement('script')
+          alpineScript.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js'
+          alpineScript.defer = true
+          document.head.appendChild(alpineScript)
+        }
+      
+        if (!document.querySelector('script[src*="@alpinejs/sort"]')) {
+          const sortScript = document.createElement('script')
+          sortScript.src = 'https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.x.x/dist/cdn.min.js'
+          sortScript.defer = true
+          document.head.appendChild(sortScript)
+        }
+      })
+    </script>
+
+      <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Add custom CSS for ghost effect
+        const style = document.createElement('style')
+        style.textContent = `
+          .sortable-ghost {
+            opacity: 0.5;
+            background: #c8ebfb;
+          }
+          .sortable-drag {
+            opacity: 0.9;
+          }
+        `
+        document.head.appendChild(style)
+      
+        // Function to generate a unique ID
+        function generateUniqueId() {
+          return 'sort-' + Math.random().toString(36).substr(2, 9)
+        }
+      
+        // Function to make an element and its children sortable
+        function makeSortable(element, depth = 0) {
+          // Skip certain elements that shouldn't be sortable
+          if (['SCRIPT', 'STYLE', 'HEAD', 'META', 'LINK', 'TITLE', 'BASE'].includes(element.tagName)) {
+            return
+          }
+      
+          // Add x-sort attribute to the element if it has children
+          if (element.children.length > 0) {
+            element.setAttribute('x-sort', '')
+            element.setAttribute('x-sort:group', `group-${depth}`)
+            element.setAttribute('x-sort.ghost', '')
+          }
+      
+          // Add x-sort:item attribute to the element itself
+          if (element !== document.body) {
+            element.setAttribute('x-sort:item', generateUniqueId())
+          }
+      
+          // Recursively make children sortable
+          Array.from(element.children).forEach((child) => makeSortable(child, depth + 1))
+        }
+      
+        // Start with the body element
+        makeSortable(document.body)
+      
+        // Add necessary Alpine.js and Sort plugin scripts if not already present
+        if (!document.querySelector('script[src*="alpinejs"]')) {
+          const alpineScript = document.createElement('script')
+          alpineScript.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js'
+          alpineScript.defer = true
+          document.head.appendChild(alpineScript)
+        }
+      
+        if (!document.querySelector('script[src*="@alpinejs/sort"]')) {
+          const sortScript = document.createElement('script')
+          sortScript.src = 'https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.x.x/dist/cdn.min.js'
+          sortScript.defer = true
+          document.head.appendChild(sortScript)
+        }
+      
+        // Initialize Alpine.js if it's not already initialized
+        if (typeof Alpine === 'undefined') {
+          document.addEventListener('alpine:init', () => {
+            Alpine.plugin(Sort)
+          })
+        } else {
+          Alpine.plugin(Sort)
+        }
+      })
+    </script>

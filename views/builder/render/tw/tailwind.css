@@ -1,0 +1,40 @@
+[x-cloak] {
+  display: none;
+}
+
+#product-branding {
+  @apply hidden;
+}
+
+#saving-form {
+  @apply bg-transparent;
+}
+
+.product-logo {
+  @apply flex items-center justify-center;
+}
+
+.group > .data-active {
+  @apply !bg-warning/10 !ring-warning/70 !ring-1 transition-all duration-200 ease-in-out;
+}
+
+.group > .data-hover {
+  @apply !bg-info/10 !ring-info/70 !ring-1 transition-all duration-200 ease-in-out;
+}
+
+@layer utilities {
+  .content-auto {
+    content-visibility: auto;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  #previewiframe {
+    @apply overflow-x-hidden overflow-y-auto;
+  }
+}

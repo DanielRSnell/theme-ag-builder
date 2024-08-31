@@ -1,0 +1,35 @@
+<div x-data="{ active: 1 }" class="w-full max-w-3xl mx-auto space-y-4">
+  
+  <!-- Question 1 -->
+  <div class="collapse collapse-arrow bg-base-200">
+    <input 
+      type="radio" 
+      name="my-accordion-2" 
+      x-bind:checked="active === 1"
+      x-on:change="active = 1" 
+    /> 
+    <div class="text-xl font-medium collapse-title">
+      Question #1
+    </div>
+    <div class="collapse-content"> 
+      <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. In magnam quod natus deleniti architecto eaque consequuntur ex, illo neque iste repellendus modi, quasi ipsa commodi saepe? Provident ipsa nulla earum.</p>
+    </div>
+  </div>
+  
+  <!-- Question 2 -->
+  <div class="collapse collapse-arrow bg-base-200">
+    <input 
+      type="radio" 
+      name="my-accordion-2" 
+      x-bind:checked="active === 2"
+      x-on:change="active = 2" 
+    /> 
+    <div class="text-xl font-medium collapse-title">
+      Question #2
+    </div>
+    <div class="collapse-content"> 
+      <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. In magnam quod natus deleniti architecto eaque consequuntur ex, illo neque iste repellendus modi, quasi ipsa commodi saepe? Provident ipsa nulla earum.</p>
+    </div>
+  </div>
+
+</div>

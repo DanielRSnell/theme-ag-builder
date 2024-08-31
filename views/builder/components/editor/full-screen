@@ -1,0 +1,150 @@
+<div
+  id="full-code"
+  class="absolute top-0 left-0 mt-[var(--maintoolbar-height)] w-full max-w-[40%] bg-base-300 z-[9999] overflow-hidden h-[calc(100vh-var(--maintoolbar-height))]"
+  x-show="tab === 'Code'"
+  x-transition:enter="transition-opacity duration-300"
+  x-transition:enter-start="opacity-0"
+  x-transition:enter-end="opacity-100"
+  x-transition:leave="transition-opacity duration-300"
+  x-transition:leave-start="opacity-100"
+  x-transition:leave-end="opacity-0"
+>
+  <div
+    class="flex w-full h-full bg-base-300 text-base-content"
+    x-cloak
+  >
+    <!-- Vertical navigation bar -->
+    <div class="flex flex-col justify-between w-12">
+      <!-- Top group of icons -->
+      <div class="rounded-none join join-vertical">
+        <button
+          class="rounded-none btn join-item"
+          x-bind:class="$store.editors.language == 'html' ? 'text-white bg-primary/30 glass': ''"
+          x-on:click="$store.editors.language = 'html'"
+        >
+          <i
+            class="text-xl ri-html5-line"
+            title="HTML"
+          ></i>
+        </button>
+        <button
+          class="rounded-none btn join-item"
+          x-bind:class="$store.editors.language == 'css' ? 'text-white bg-primary/30 glass': ''"
+          x-on:click="$store.editors.language = 'css'"
+        >
+          <i
+            class="text-xl ri-css3-line"
+            title="CSS"
+          ></i>
+        </button>
+        <button
+          class="rounded-none btn join-item"
+          x-bind:class="$store.editors.language == 'javascript' ? 'text-white bg-primary/30 glass': ''"
+          x-on:click="$store.editors.language = 'javascript'"
+        >
+          <i
+            class="text-xl ri-javascript-line"
+            title="JavaScript"
+          ></i>
+        </button>
+        <button
+          class="rounded-none btn join-item"
+          x-bind:class="$store.editors.language == 'php' ? 'text-white bg-primary/30 glass': ''"
+          x-on:click="$store.editors.language = 'php'"
+        >
+          <i
+            class="text-xl ri-terminal-line"
+            title="PHP"
+          ></i>
+        </button>
+      </div>
+
+      <!-- Bottom group of icons -->
+      <div class="hidden rounded-none join join-vertical">
+        <button
+          class="rounded-none btn join-item"
+          x-bind:class="$store.editors.debug == 'cheatsheet' ? 'text-white bg-primary/30 glass': ''"
+          x-on:click="$store.editors.debug = 'cheatsheet'"
+        >
+          <i
+            class="text-xl ri-file-list-3-line"
+            title="Cheatsheet"
+          ></i>
+        </button>
+        <button
+          class="rounded-none btn join-item"
+          x-bind:class="$store.editors.debug == 'inspector' ? 'text-white bg-primary/30 glass': ''"
+          x-on:click="$store.editors.debug = 'inspector'"
+        >
+          <i
+            class="text-xl ri-database-2-line"
+            title="Data Inspector"
+          ></i>
+        </button>
+        <button
+          class="rounded-none btn join-item"
+          x-bind:class="$store.editors.debug == 'query' ? 'text-white bg-primary/30 glass': ''"
+          x-on:click="$store.editors.debug = 'query'"
+        >
+          <i
+            class="text-xl ri-search-line"
+            title="Query"
+          ></i>
+        </button>
+        <button
+          class="rounded-none btn join-item"
+          x-bind:class="$store.editors.debug == 'settings' ? 'text-white bg-primary/30 glass': ''"
+          x-on:click="$store.editors.debug = 'settings'"
+        >
+          <i
+            class="text-xl ri-settings-3-line"
+            title="Settings"
+          ></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right side area -->
+    <div class="flex flex-col flex-1 h-full overflow-hidden">
+      <!-- Toolbar -->
+      <div class="flex items-center justify-between p-2 bg-base-200">
+        <span
+          class="text-xs font-semibold"
+          x-text="`Code Editor (${$store.editors.language})`"
+        ></span>
+        <div class="flex space-x-2">
+          <i class="text-xs ri-code-line"></i>
+          <i class="text-xs ri-braces-line"></i>
+          <i class="text-xs ri-brackets-line"></i>
+          <i class="text-xs ri-parentheses-line"></i>
+        </div>
+      </div>
+
+      <!-- Code editor wrapper -->
+      <div
+        class="flex-1 overflow-hidden bg-black border-t border-base-content/20"
+      >
+        <div
+          id="outer-html-editor"
+          class="w-full h-full"
+          x-show="$store.editors.language === 'html'"
+        ></div>
+        <div
+          id="global-css-editor"
+          class="w-full h-full"
+          x-show="$store.editors.language === 'css'"
+        ></div>
+        <div
+          id="global-javascript-editor"
+          class="w-full h-full"
+          x-show="$store.editors.language === 'javascript'"
+        ></div>
+        <div
+          id="php-editor"
+          class="w-full h-full"
+          x-show="$store.editors.language === 'php'"
+        ></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,54 @@
+:root {
+  --color-hover: rgba(232, 62, 139, 0.3);
+  --color-selected: rgba(39, 198, 218, 0.3);
+}
+
+.ag-hover-highlight,
+.ag-selected-highlight {
+  position: absolute;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+}
+
+.ag-hover-highlight {
+  border: 2px solid rgba(232, 62, 139, 0.8);
+}
+
+.ag-selected-highlight {
+  border: 2px solid rgba(39, 198, 218, 0.8);
+  background-color: transparent;
+}
+
+.ag-element-info {
+  position: absolute;
+  top: -25px;
+  left: 0;
+  padding: 2px 5px;
+  font-size: 12px;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  color: white;
+  border-radius: 3px;
+}
+
+.ag-hover-highlight .ag-element-info {
+  background-color: rgba(232, 62, 139, 0.8);
+}
+
+.ag-selected-highlight .ag-element-info {
+  background-color: rgba(39, 198, 218, 0.8);
+}
+
+.ag-element-info .icon {
+  margin-right: 5px;
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+}
+
+.ag-element-info .icon svg {
+  width: 100%;
+  height: 100%;
+}

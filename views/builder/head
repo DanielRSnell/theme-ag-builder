@@ -1,0 +1,295 @@
+<script src="https://cdn.jsdelivr.net/npm/@imacrayon/alpine-ajax@0.7.0/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@alpinejs/morph@3.x.x/dist/cdn.min.js"></script>
+
+<script
+  src="//unpkg.com/alpinejs"
+  defer
+></script>
+
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+<script
+  defer
+  src="https://cdn.jsdelivr.net/npm/short-unique-id@latest/dist/short-unique-id.min.js"
+></script>
+
+
+<script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
+<script src="https://unpkg.com/@shopify/prettier-plugin-liquid/standalone.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-html.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-postcss.js"></script>
+<script src="https://unpkg.com/@prettier/plugin-php@0.19.6/standalone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chroma-js@2.4.2/chroma.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+/>
+
+<link
+  href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"
+  rel="stylesheet"
+/>
+<script
+  defer
+  src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"
+></script>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css"
+/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<!-- and it's easy to individually load additional languages -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+{# {{ include("styles/tw/admin.html") }} #}
+{{ include("styles/tw/compile.html") }}
+
+{# {{ function("include_ace_editor_files") }} #}
+
+<script>
+  function prettyTwig(code) {
+    const formattedContent = prettier.format(code, {
+      parser: "liquid-html",
+      plugins: [prettierPluginLiquid],
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+      singleQuote: false,
+      htmlWhitespaceSensitivity: "css",
+      singleAttributePerLine: true, // This forces each attribute onto a new line
+      bracketSameLine: false, // This ensures the closing bracket is on a new line
+      bracketSpacing: true, // This adds spaces inside object literals
+    });
+
+    return formattedContent;
+  }
+
+  function prettyPHP(code) {
+    const formattedContent = prettier.format(code, {
+      parser: "php",
+      plugins: [prettierPlugins.php],
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+      singleQuote: false,
+      htmlWhitespaceSensitivity: "css",
+    });
+
+    return formattedContent;
+  }
+
+  function prettyHTML(code) {
+    const formattedContent = prettier.format(code, {
+      parser: "html",
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+      singleQuote: false,
+      htmlWhitespaceSensitivity: "css",
+    });
+
+    return formattedContent;
+  }
+
+  function prettyCSS(code) {
+    return prettier.format(code, {
+      parser: "css",
+      plugins: prettierPlugins,
+    });
+  }
+
+  function prettyJavaScript(code) {
+    const formattedContent = prettier.format(code, {
+      parser: "babel",
+      plugins: [prettierPlugins.babel],
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+      singleQuote: false,
+      htmlWhitespaceSensitivity: "css",
+    });
+
+    return formattedContent;
+  }
+
+  window.prettierPlugins = prettierPLugins;
+</script>
+
+<script id="ag-generate-ids">
+  function GenerateSelectorIdentifiers(htmlDocument) {
+    // Parse the HTML string into a DOM object
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlDocument, "text/html");
+
+    // Initialize the ShortUniqueId generator
+    const uid = new ShortUniqueId();
+
+    // Function to generate a unique ID
+    function generateUniqueId() {
+      return "ag-" + uid.randomUUID(6).toLowerCase();
+    }
+
+    // Recursive function to add IDs to elements without an existing ID
+    function addIdsToElements(element) {
+      if (element.nodeType === Node.ELEMENT_NODE) {
+        if (!element.id) {
+          element.id = generateUniqueId();
+        }
+        for (let child of element.children) {
+          addIdsToElements(child);
+        }
+      }
+    }
+
+    // Get the body element
+    const bodyElement = doc.body;
+
+    if (!bodyElement) {
+      console.error("Body element not found in the document");
+      return htmlDocument;
+    }
+
+    // Add IDs to all elements within the body
+    addIdsToElements(bodyElement);
+
+    // Return the modified HTML as a string
+    return doc.documentElement.outerHTML;
+  }
+</script>
+
+<script>
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+</script>
+
+<script id="window-shortcuts">
+  window.refreshTailwind = function () {
+    window.ThemeManager.refreshTW();
+    window.StylebookManager.refreshTW();
+    window.FontManager.refreshTW();
+    window.ComponentsManager.refreshTW();
+    if (window.refreshTW) {
+      window.refreshTW();
+      setTimeout(() => {
+        tailwindUpdateConfig();
+      }, 1000);
+    }
+  };
+</script>
+
+{# <script>
+  (function () {
+    let isOptionKeyPressed = false;
+    let iframe = null;
+
+    function getIframe() {
+      if (!iframe) {
+        iframe = document.getElementById("agnostic-preview-window");
+        if (!iframe) {
+          console.error("Iframe with id 'agnostic-preview-window' not found.");
+          return null;
+        }
+      }
+      return iframe;
+    }
+
+    function sendOptionKeyState() {
+      const currentIframe = getIframe();
+      if (currentIframe && currentIframe.contentWindow) {
+        try {
+          currentIframe.contentWindow.postMessage(
+            { type: "optionKeyState", pressed: isOptionKeyPressed },
+            "*"
+          );
+          console.log(
+            `Option key ${
+              isOptionKeyPressed ? "pressed" : "released"
+            }. Highlighter ${isOptionKeyPressed ? "disabled" : "enabled"}.`
+          );
+        } catch (error) {
+          console.error("Error sending message to iframe:", error);
+        }
+      } else {
+        console.warn(
+          "Iframe or contentWindow not available. Option key state not sent."
+        );
+      }
+    }
+
+    function checkOptionKey(event) {
+      const newState = event.altKey;
+
+      if (newState !== isOptionKeyPressed) {
+        isOptionKeyPressed = newState;
+        sendOptionKeyState();
+      }
+    }
+
+    document.addEventListener("keydown", checkOptionKey);
+    document.addEventListener("keyup", checkOptionKey);
+    document.addEventListener("mousemove", checkOptionKey);
+    document.addEventListener("mousedown", checkOptionKey);
+    document.addEventListener("mouseup", checkOptionKey);
+
+    window.addEventListener("message", function (event) {
+      if (event.data.type === "highlighterReady") {
+        console.log("Highlighter ready. Sending initial option key state.");
+        sendOptionKeyState();
+      }
+    });
+
+    window.addEventListener("focus", function () {
+      console.log("Window focused. Checking option key state.");
+      checkOptionKey({ altKey: false });
+    });
+
+    // Check for iframe every second until found or timeout
+    let checkCount = 0;
+    const checkInterval = setInterval(function () {
+      if (getIframe()) {
+        clearInterval(checkInterval);
+        console.log("Iframe found and ready.");
+      } else {
+        checkCount++;
+        if (checkCount >= 10) {
+          // Stop checking after 10 seconds
+          clearInterval(checkInterval);
+          console.error(
+            "Iframe not found after 10 seconds. Handler may not work correctly."
+          );
+        }
+      }
+    }, 1000);
+
+    console.log("Parent window option key handler initialized.");
+  })();
+</script> #}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/editor/editor.main.min.css"
+/>
+<link
+  href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"
+  rel="stylesheet"
+/>
+<script
+  type="text/javascript"
+  src="https://unpkg.com/monaco-themes/dist/monaco-themes.js"
+></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.1/min/vs/loader.min.js"></script>
+<script src="https://unpkg.com/emmet-monaco-es/dist/emmet-monaco.min.js"></script>
+
+{{ include("builder/store.html") }}

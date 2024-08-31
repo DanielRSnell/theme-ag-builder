@@ -1,0 +1,3 @@
+  <h1>Agnostic Components</h1>
+  <p>This is the Agnostic Components template.</p>
+  {# Add your component rendering logic here #}

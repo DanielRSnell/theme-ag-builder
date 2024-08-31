@@ -1,0 +1,653 @@
+<script>
+  document.addEventListener("alpine:init", () => {
+    Alpine.store("preview", {
+      doc: "",
+      previewDoc: "",
+      previewInit: false,
+      showRaw: false,
+      raw_html: "",
+      preview_html: "",
+      revisions: [],
+      template_id: Alpine.store("builder").template_id,
+      template_link:
+        Alpine.store("builder").template_link + "?agnostic=preview",
+      parentSelector: "", // First clicked is always parent
+      activeSelectors: [],
+      getPreview() {
+        const iframe = document.getElementById("agnostic-preview-window");
+        const iframeDoc =
+          iframe.contentDocument || iframe.contentWindow.document;
+        return iframeDoc;
+      },
+      // Issue Identified: this.doc falling out of sync with preview
+      updatePreviewHtml(html, type) {
+        this.generateNewDocument(this.raw_html);
+        this.preview_html = html;
+        // Convert to document
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        console.log("Preview Generated");
+        if (!this.previewInit) {
+          this.previewDoc = html;
+          this.previewInit = true;
+        }
+        console.log("Checking The Type", type);
+        if (type) {
+          const innerHTML =
+            this.doc.querySelector("#agnostic-content").innerHTML;
+
+          this.previewDoc = innerHTML;
+
+          // Send message to preview to reset overlays
+          this.sendPreviewMessage({ type: "update_html" });
+        }
+      },
+      setRawHtml(html) {
+        // Get #agnostic-content innerHTML
+        const innerHTML = this.doc.querySelector("#agnostic-content").innerHTML;
+        this.raw_html = innerHTML;
+      },
+      sendPreviewMessage(message) {
+        const iframe = document.getElementById("agnostic-preview-window");
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage(message, "*");
+        } else {
+          console.warn("Preview iframe not found or not ready");
+        }
+      },
+      checkElementCount(elements) {
+        const check = elements.length === 0;
+        return check;
+      },
+      removeDataActive() {
+        const treeBoxes = document.querySelectorAll(
+          "#agnostic-tree-wrap .tree-box"
+        );
+        treeBoxes.forEach((box) => box.removeAttribute("data-active"));
+      },
+      setActiveElements(type = null) {
+        const elements = this.activeSelectors;
+        console.log(
+          "Selectors to set count",
+          elements.length,
+          "Selectors:",
+          elements
+        );
+
+        // Clear existing active items
+        window.AgnosticTree.removeActiveItems();
+
+        // Update activeSelectors
+        this.activeSelectors = elements;
+
+        if (elements.length === 0) {
+          console.log("No active elements to set");
+          Alpine.store("editors").selectedElementTag = null;
+          this.sendPreviewMessage({ type: "no_active_elements" });
+          return;
+        }
+
+        const lastElement = elements[elements.length - 1];
+
+        elements.forEach((selector, index) => {
+          const element = this.doc.querySelector(selector);
+
+          if (element) {
+            const tag = element.tagName.toLowerCase();
+            console.log(selector, "found:", element);
+
+            this.handleActiveElement(element);
+            // window.AgnosticTree.onHighlightTreeElements(selector)
+
+            if (selector === lastElement) {
+              Alpine.store("editors").selectedElementTag = tag;
+            }
+
+            if (!type) {
+              this.sendPreviewMessage({
+                type: "clicked_el",
+                selector: selector,
+              });
+            }
+          } else {
+            console.log("Element not found:", selector);
+            this.sendPreviewMessage({
+              type: "unselectable_el",
+              selector: selector,
+            });
+          }
+        });
+
+        if (type) {
+          console.log(
+            "Tree Selectors Setting (Dont Highlight Tree when Tree Clicked?)",
+            elements
+          );
+        } else {
+          window.AgnosticTree.onHighlightTreeElement();
+        }
+
+        // Trigger highlighter reset after processing all elements
+        window.resetHighlighterPositions();
+      },
+      handleParentElement(element) {
+        // Generate parent selector
+        const parentSelector = window.generateSelector(element);
+
+        console.log("Parent Selector:", parentSelector);
+
+        this.parentSelector = parentSelector;
+      },
+      getDocumentElement(selector) {
+        // Use the document to make sure the item is not dynamically rendered in preview
+        return this.doc.querySelector(selector);
+      },
+      checkActiveSelectors(selector) {
+        const check = this.activeSelectors.includes(selector);
+        return check;
+      },
+      handleActiveElement(element) {
+        this.createParentClasses(element);
+        this.createParentWrapper(element);
+        const innerHtml = element.innerHTML;
+        const outerHTML = element.innerHTML;
+        window.innerHTMLEditor.setValue(prettyTwig(innerHtml));
+        window.outerHTMLEditor.setValue(prettyTwig(outerHTML));
+      },
+      async sortClasses(classes) {
+        const sortedClasses = await twClasses.sort(classes);
+        return sortedClasses;
+      },
+      async setFormattedClasses(classes) {
+        // Sort the classes
+        const sortedClasses = await twClasses.sort(classes);
+
+        // Split the sorted classes into an array
+        const classArray = sortedClasses.split(/\s+/);
+
+        // Group the classes
+        const groupedClasses = {
+          base: [],
+          prefixed: {},
+        };
+
+        classArray.forEach((cls) => {
+          if (cls.includes(":")) {
+            const [prefix, rest] = cls.split(":");
+            if (!groupedClasses.prefixed[prefix]) {
+              groupedClasses.prefixed[prefix] = [];
+            }
+            groupedClasses.prefixed[prefix].push(cls);
+          } else {
+            groupedClasses.base.push(cls);
+          }
+        });
+
+        // Format the classes
+        let formattedClasses = "";
+
+        if (groupedClasses.base.length > 0) {
+          formattedClasses += groupedClasses.base.join("\n") + "\n\n";
+        }
+
+        const prefixes = Object.keys(groupedClasses.prefixed).sort();
+        prefixes.forEach((prefix, index) => {
+          formattedClasses += groupedClasses.prefixed[prefix].join("\n") + "\n";
+          if (index < prefixes.length - 1) {
+            formattedClasses += "\n";
+          }
+        });
+
+        // Trim any extra newlines at the end
+        formattedClasses = formattedClasses.trim();
+
+        // Set the formatted classes in the editor
+        window.classManagerEditor.setValue(formattedClasses);
+      },
+      createParentClasses(element) {
+        // TODO: sort classes and organize as a list and grouped
+        const classes = Array.from(element.classList);
+        const stringClasses = classes.join(" ");
+        this.setFormattedClasses(stringClasses);
+      },
+      async createParentWrapper(element) {
+        // Get the current classes as an array
+        const classes = Array.from(element.classList);
+        const stringClasses = classes.join(" ");
+
+        // Sort the classes
+        const sortedClasses = await this.sortClasses(stringClasses);
+
+        // Update the original element with the sorted classes
+        element.className = sortedClasses;
+
+        // Create a temporary div to hold our cloned element
+        const tempDiv = document.createElement("div");
+
+        // Clone the element (now with sorted classes)
+        const clonedElement = element.cloneNode(true);
+
+        // Remove all child nodes from the cloned element
+        while (clonedElement.firstChild) {
+          clonedElement.removeChild(clonedElement.firstChild);
+        }
+
+        // Append the cleaned cloned element to our temporary div
+        tempDiv.appendChild(clonedElement);
+
+        // Get the outerHTML of the cleaned cloned element
+        const wrapperHTML = tempDiv.innerHTML;
+
+        // Set the value in the attributes editor
+        window.attributesEditor.setValue(prettyTwig(wrapperHTML));
+      },
+      handleActiveSelector(selector) {
+        const el = this.getDocumentElement(selector);
+        if (el) {
+          this.handleActiveElement(el);
+          this.sendPreviewMessage({ type: "clicked_el", selector });
+        }
+      },
+      handleTreeActiveSelector(selector) {
+        const el = this.getDocumentElement(selector);
+        if (el) {
+          this.handleActiveElement(el);
+          this.sendPreviewMessage({ type: "tree_clicked_el", selector });
+        }
+      },
+      handleHoveredSelector(selector, isHovering) {
+        this.sendPreviewMessage({
+          type: isHovering ? "hover_el" : "unhover_el",
+          selector,
+        });
+      },
+      getRawHTML() {
+        // Use the doc and get #agnostic-content innerHTML
+        const innerHTML = this.doc.querySelector("#agnostic-content").innerHTML;
+        return innerHTML;
+      },
+      generateNewDocument(html) {
+        console.log("Generating New Document");
+        const verifyHTML = GenerateSelectorIdentifiers(html);
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(verifyHTML, "text/html");
+
+        this.doc = doc;
+
+        window.AgnosticTree.generateTreeHTML(doc);
+        this.raw_html = this.doc.querySelector("#agnostic-content").innerHTML;
+
+        // set the srcdoc this.previewDoc from the doc
+        this.previewDoc = doc.documentElement.outerHTML;
+        window.AgnosticPreview.initPreviewManager();
+
+        console.log("New document generated:", doc, this.previewDoc);
+        // Render the preview
+        setTimeout(() => {
+          Alpine.store("editors").debouncedTimberRender();
+          window.AgnosticState.initConfigTab();
+        }, 100);
+      },
+      reloadTailwindComiler() {
+        console.log("Reloading Tailwind Compiler");
+        if (document.querySelector('iframe[title="Compiler"]')) {
+          document
+            .querySelector('iframe[title="Compiler"]')
+            .contentWindow.location.reload();
+          Alpine.store("builder").addNotification("TAILWIND_COMPILED");
+        } else {
+          // create iframe with /?agnostic=autocomplete
+          const iframe = document.createElement("iframe");
+          iframe.src = "/?agnostic=autocomplete";
+          iframe.title = "Compiler";
+          iframe.style.display = "none";
+          document.body.appendChild(iframe);
+          console.log("Compiler iframe created");
+          Alpine.store("builder").addNotification("TAILWIND_COMPILED");
+        }
+      },
+    });
+
+    window.AgnosticPreviewStore = Alpine.store("preview");
+
+    // Bind the methods to ensure correct 'this' context
+    Object.keys(window.AgnosticPreviewStore).forEach((key) => {
+      if (typeof window.AgnosticPreviewStore[key] === "function") {
+        window.AgnosticPreviewStore[key] = window.AgnosticPreviewStore[
+          key
+        ].bind(window.AgnosticPreviewStore);
+      }
+    });
+  });
+
+  function AgnosticPreviewBase() {
+    return {
+      template_id: Alpine.store("builder").template_id,
+      template_link:
+        Alpine.store("builder").template_link + "?agnostic=preview",
+      rest_nonce: "{{ function('wp_create_nonce', 'wp_rest') }}",
+      resturl: "/wp-json/agnostic/v1",
+      refresh: false,
+      init() {
+        console.log("AgnosticPreview initialized");
+        this.getContent();
+        this.initPreviewManager();
+
+        window.AgnosticPreview = this;
+      },
+    };
+  }
+
+  function AgnosticPreviewContent() {
+    return {
+      getContent() {
+        const preview = Alpine.store("preview").preview_html;
+
+        fetch(`${this.resturl}/post-content`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-WP-Nonce": this.rest_nonce,
+          },
+          body: JSON.stringify({
+            post_id: Alpine.store("builder").template_id,
+          }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json().then((result) => {
+              if (result.content) {
+                Alpine.store("preview").generateNewDocument(result.content);
+                console.log("Setting PHP Editor Value:", result.php);
+                setTimeout(() => {
+                  Alpine.store("editors").setEditorValue(
+                    "phpEditor",
+                    result.php
+                  );
+                  Alpine.store("builder").addPostFields(result);
+                }, 0);
+              } else {
+                console.error("Failed to get content:", result);
+              }
+            });
+          })
+          .catch((error) => console.error("Error:", error));
+      },
+    };
+  }
+
+  function AgnosticPreviewSave() {
+    // add Notification
+    Alpine.store("builder").addNotification("SAVING");
+    return {
+      saveContent() {
+        const content = Alpine.store("preview").getRawHTML();
+
+        fetch(`${this.resturl}/save-post-content`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-WP-Nonce": this.rest_nonce,
+          },
+          body: JSON.stringify({
+            post_id: this.template_id,
+            content: content,
+            php: Alpine.store("editors").phpEditor,
+          }),
+        })
+          .then((response) => response.json())
+          .then((result) => {
+            if (result.message) {
+              setTimeout(() => {
+                Alpine.store("builder").addNotification("TAILWIND_COMPILE");
+                Alpine.store("preview").reloadTailwindComiler();
+              }, 100);
+              console.log("Content saved successfully:", result.message);
+            } else {
+              console.error("Failed to save content:", result);
+            }
+          })
+          .catch((error) => console.error("Error:", error));
+      },
+    };
+  }
+
+  function AgnosticPreviewProcess() {
+    return {
+      processContent(type) {
+        const content = Alpine.store("preview").raw_html;
+        const settings = Alpine.store("preview").settings || {};
+        const postId = Alpine.store("preview").post_id;
+
+        const data = new FormData();
+        data.append("action", "agnostic_process");
+        data.append("html", content);
+        data.append("post_id", postId);
+        data.append("settings", JSON.stringify(settings));
+        data.append("_ajax_nonce", this.nonce);
+
+        fetch(this.ajaxurl, {
+          method: "POST",
+          credentials: "same-origin",
+          body: data,
+        })
+          .then((response) => response.text())
+          .then((result) => {
+            if (type) {
+              Alpine.store("preview").updatePreviewHtml(result, type);
+            } else {
+              Alpine.store("preview").updatePreviewHtml(result);
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            Alpine.store("preview").updatePreviewHtml(
+              "<p>Error processing preview</p>",
+              "error"
+            );
+          });
+      },
+    };
+  }
+
+  function AgnosticPreviewIframe() {
+    return {
+      reloadIframe() {
+        const iframe = document.getElementById("agnostic-preview-window");
+        if (iframe) {
+          iframe.contentWindow.location.reload();
+          console.log("Agnostic Preview iframe reloaded");
+        }
+      },
+    };
+  }
+
+  function AgnosticPreviewManager() {
+    return {
+      containerWidth: 0,
+      containerHeight: 0,
+      currentScreenSize: "xl",
+      screenSizes: {
+        xs: 375,
+        sm: 640,
+        md: 768,
+        lg: 1024,
+        xl: 1280,
+        "2xl": 1536,
+      },
+      screenStyles: {},
+
+      initPreviewManager() {
+        this.updateContainerSize();
+        window.addEventListener("resize", () => this.updateContainerSize());
+        this.calculateScreenStyles();
+        this.setScreenSize("xl");
+      },
+
+      updateContainerSize() {
+        const container = document.getElementById("agnostic-screen");
+        this.containerWidth = container.clientWidth;
+        this.containerHeight = container.clientHeight;
+        this.calculateScreenStyles();
+        this.updatePreviewSize();
+      },
+
+      calculateScreenStyles() {
+        const previewContainer = document.querySelector(
+          "#agnostic-preview-container"
+        );
+        // Set the containerWidth and containerHeight
+        this.containerHeight = previewContainer.clientHeight;
+        this.containerWidth = previewContainer.clientWidth;
+        console.log("Container Width:", previewContainer.clientWidth);
+
+        const header = document.getElementById("agnostic-preview-header");
+        this.screenStyles = {};
+        for (const [size, width] of Object.entries(this.screenSizes)) {
+          let targetWidth = width;
+          let targetHeight =
+            (width / this.containerWidth) * this.containerHeight;
+          let scale =
+            width <= this.containerWidth ? 1 : this.containerWidth / width;
+          console.log(
+            "Scale:",
+            scale,
+            "Container Width:",
+            this.containerWidth,
+            "Width:",
+            width
+          );
+          let styles = {
+            agnosticScreen: { width: "100%" },
+            previewHandler: {
+              width: "100%",
+              height: "100%",
+              transform: "none",
+              overflow: "hidden",
+              transformOrigin: "top left",
+            },
+          };
+          if (scale === 1) {
+            styles.agnosticScreen.width = `${targetWidth}px`;
+          } else if (scale < 0.98) {
+            const headerHeight =
+              header.clientHeight * -0.2 + header.clientHeight;
+            const headerScaledHeight = headerHeight / scale;
+            const containerHeight = previewContainer.clientHeight / scale;
+            const containerHeightScaledHeader =
+              containerHeight - headerScaledHeight;
+            styles.previewHandler.width = `${targetWidth}px`;
+            styles.previewHandler.height = `${containerHeightScaledHeader}px`;
+            styles.previewHandler.transform = `scale(${scale})`;
+            styles.previewHandler.overflow = "auto";
+          }
+          this.screenStyles[size] = styles;
+        }
+        this.screenStyles["full"] = {
+          agnosticScreen: { width: "100%" },
+          previewHandler: {
+            width: "100%",
+            height: "100%",
+            transform: "none",
+            overflow: "hidden",
+            transformOrigin: "top left",
+          },
+        };
+
+        console.log("Screen Resize Styles:", this.screenStyles);
+      },
+
+      setScreenSize(size) {
+        this.currentScreenSize = size;
+        this.updatePreviewSize();
+      },
+
+      updatePreviewSize() {
+        const agnosticScreen = document.getElementById("agnostic-screen");
+        const previewHandler = document.getElementById(
+          "agnostic-preview-handler"
+        );
+        const iframe = document.getElementById("agnostic-preview-window");
+        const styles = this.screenStyles[this.currentScreenSize];
+        if (styles) {
+          Object.assign(agnosticScreen.style, styles.agnosticScreen);
+          Object.assign(previewHandler.style, styles.previewHandler);
+        }
+        this.updateIframeViewport(
+          iframe,
+          this.screenSizes[this.currentScreenSize] || this.containerWidth
+        );
+      },
+
+      updateIframeViewport(iframe, width) {
+        if (iframe && iframe.contentDocument) {
+          const viewportMeta = iframe.contentDocument.querySelector(
+            'meta[name="viewport"]'
+          );
+          if (viewportMeta) {
+            viewportMeta.setAttribute(
+              "content",
+              `width=${width}, initial-scale=1, shrink-to-fit=no`
+            );
+          }
+          setTimeout(() => {
+            console.log("Resetting highlighter positions");
+            window.resetHighlighterPositions();
+          }, 500);
+        }
+      },
+
+      getDeviceType(size) {
+        const width = this.screenSizes[size];
+        if (width <= 640) return "phone";
+        if (width <= 1024) return "tablet";
+        if (width <= 1280) return "laptop";
+        return "desktop";
+      },
+
+      openAddScreenSizeModal() {
+        console.log("Open add screen size modal");
+      },
+
+      addScreenSize(name, width) {
+        if (name && width && !this.screenSizes[name]) {
+          this.screenSizes[name] = width;
+          this.calculateScreenStyles();
+        }
+      },
+
+      removeScreenSize(name) {
+        if (this.screenSizes[name]) {
+          delete this.screenSizes[name];
+          this.calculateScreenStyles();
+          if (this.currentScreenSize === name) {
+            this.setScreenSize("xl");
+          }
+        }
+      },
+    };
+  }
+
+  function AgnosticPreview() {
+    return {
+      ...AgnosticPreviewBase(),
+      ...AgnosticPreviewContent(),
+      ...AgnosticPreviewSave(),
+      ...AgnosticPreviewProcess(),
+      ...AgnosticPreviewIframe(),
+      ...AgnosticPreviewManager(),
+    };
+  }
+
+  // Function to update raw HTML and trigger processing (can be called from outside this script)
+  function updateRawHtmlAndProcess(html) {
+    Alpine.store("preview").setRawHtml(html);
+    const agnosticPreview = document.querySelector(
+      '[x-data="AgnosticPreview()"]'
+    ).__x.$data;
+    agnosticPreview.processContent();
+  }
+</script>

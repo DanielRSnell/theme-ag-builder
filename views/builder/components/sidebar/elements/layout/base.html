@@ -1,0 +1,99 @@
+<!-- START: sidebar/elements/layout/base.html -->
+<div x-show="['flex', 'grid'].includes(display)" class="hidden space-y-4">
+  <div class="form-control">
+    <label class="label"><span class="label-text">Display</span></label>
+    <select x-model="display" class="w-full select select-bordered select-sm">
+      <option value="block">Block</option>
+      <option value="flex">Flex</option>
+      <option value="grid">Grid</option>
+    </select>
+  </div>
+
+  <!-- Flex container settings -->
+  <div x-show="display === 'flex'" class="space-y-2">
+    <div class="form-control">
+      <label class="label"><span class="label-text">Flex Wrap</span></label>
+      <select x-model="flexSettings.flexWrap" class="w-full select select-bordered select-sm">
+        <option value="flex-nowrap">No Wrap</option>
+        <option value="flex-wrap">Wrap</option>
+        <option value="flex-wrap-reverse">Wrap Reverse</option>
+      </select>
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Flex Direction</span></label>
+      <select x-model="flexSettings.flexDirection" class="w-full select select-bordered select-sm">
+        <option value="flex-row">Row</option>
+        <option value="flex-row-reverse">Row Reverse</option>
+        <option value="flex-col">Column</option>
+        <option value="flex-col-reverse">Column Reverse</option>
+      </select>
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Align Items</span></label>
+      <select x-model="flexSettings.alignItems" class="w-full select select-bordered select-sm">
+        <option value="items-stretch">Stretch</option>
+        <option value="items-start">Start</option>
+        <option value="items-center">Center</option>
+        <option value="items-end">End</option>
+        <option value="items-baseline">Baseline</option>
+      </select>
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Justify Content</span></label>
+      <select x-model="flexSettings.justifyContent" class="w-full select select-bordered select-sm">
+        <option value="justify-start">Start</option>
+        <option value="justify-end">End</option>
+        <option value="justify-center">Center</option>
+        <option value="justify-between">Space Between</option>
+        <option value="justify-around">Space Around</option>
+        <option value="justify-evenly">Space Evenly</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Grid container settings -->
+  <div x-show="display === 'grid'" class="space-y-2">
+    <div class="form-control">
+      <label class="label"><span class="label-text">Grid Template Columns</span></label>
+      <input x-model="gridSettings.gridTemplateColumns" type="text" placeholder="E.g., repeat(3, 1fr)" class="w-full input input-bordered input-sm" />
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Grid Template Rows</span></label>
+      <input x-model="gridSettings.gridTemplateRows" type="text" placeholder="E.g., auto 1fr auto" class="w-full input input-bordered input-sm" />
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Grid Auto Flow</span></label>
+      <select x-model="gridSettings.gridAutoFlow" class="w-full select select-bordered select-sm">
+        <option value="grid-flow-row">Row</option>
+        <option value="grid-flow-col">Column</option>
+        <option value="grid-flow-row-dense">Row Dense</option>
+        <option value="grid-flow-col-dense">Column Dense</option>
+      </select>
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Gap</span></label>
+      <input x-model="gridSettings.gap" type="text" placeholder="E.g., 1rem" class="w-full input input-bordered input-sm" />
+    </div>
+  </div>
+
+  <!-- Common settings for flex items and grid items -->
+  <div class="space-y-2">
+    <div class="form-control">
+      <label class="label"><span class="label-text">Flex Grow</span></label>
+      <input x-model="flexGrow" type="number" min="0" class="w-full input input-bordered input-sm" />
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Flex Shrink</span></label>
+      <input x-model="flexShrink" type="number" min="0" class="w-full input input-bordered input-sm" />
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Flex Basis</span></label>
+      <input x-model="flexBasis" type="text" placeholder="E.g., auto, 0, 100%" class="w-full input input-bordered input-sm" />
+    </div>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Order</span></label>
+      <input x-model="order" type="number" class="w-full input input-bordered input-sm" />
+    </div>
+  </div>
+</div>
+<!-- END: sidebar/elements/layout/base.html -->

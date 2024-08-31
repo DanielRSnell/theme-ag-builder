@@ -1,0 +1,756 @@
+<script>
+  // Populate is for imitating post / archive / search /etc.
+  document.addEventListener('alpine:init', () => {
+    Alpine.store('builder', {
+      state: '',
+      nonce: "{{ function('wp_create_nonce', 'wp_rest') }}",
+      auth: true,
+      template_id: new URLSearchParams(window.location.search).get('template_id'),
+      populate: {
+        view_is: '',
+        view_target: '',
+        view_type: '',
+        if_single: ''
+      },
+      template_link: new URLSearchParams(window.location.search).get('template_link') + '?agnostic=preview',
+      populate: {
+        type: '',
+        id: ''
+      },
+      notification: null,
+      notificationQueue: [],
+      addPostFields(meta) {
+        const { view_is, view_target, view_type, if_single } = meta
+        this.populate = { view_is, view_target, view_type, if_single }
+  
+        this.prepareBuilder()
+      },
+      prepareBuilder() {
+        const { view_is, view_target, view_type, if_single } = this.populate
+        const frame = document.getElementById('agnostic-preview-window')
+        console.log('Check Populated', view_is, view_target, view_type, if_single)
+        // Ensure the frame exists
+        if (!frame) {
+          console.error('Preview frame not found')
+          return
+        }
+  
+        // Function to hide elements once the frame is loaded
+        const hideElements = () => {
+          const frameDoc = frame.contentDocument || frame.contentWindow.document
+  
+          // Function to hide an element if it exists
+          const hideIfExists = (id) => {
+            console.log('Check Populated', id, 'hiding: ', frameDoc.getElementById(id))
+            const element = frameDoc.getElementById(id)
+            if (element) {
+              element.style.display = 'none'
+            } else {
+              console.warn(`Element with id '${id}' not found in the preview frame`)
+            }
+          }
+  
+          // Hide elements based on view_is
+          switch (view_is) {
+            case 'header':
+              hideIfExists('builder-header')
+              break
+            case 'footer':
+              hideIfExists('builder-footer')
+              break
+            default:
+              // If view_is is not 'Header', 'Footer', or 'Both', we don't hide anything
+              console.log(`No elements hidden for view_is: ${view_is}`)
+          }
+  
+          // Log the preparation details
+          console.log('Builder prepared with:', { view_is, view_target, view_type, if_single })
+        }
+  
+        // Check if the frame is already loaded
+        if (frame.contentDocument && frame.contentDocument.readyState === 'complete') {
+          hideElements()
+        } else {
+          // If not loaded, wait for it to load
+          frame.onload = hideElements
+        }
+      },
+      addNotification(type, message = null, color = null) {
+        const newNotification = window.notificationManager(type, message, color)
+        if (this.notification === null) {
+          this.setNotification(newNotification)
+        } else {
+          this.notificationQueue.push(newNotification)
+        }
+      },
+      setNotification(notification) {
+        this.notification = notification
+        setTimeout(() => {
+          this.clearNotification()
+        }, notification.duration || 3000)
+      },
+      clearNotification() {
+        this.notification = null
+        if (this.notificationQueue.length > 0) {
+          this.setNotification(this.notificationQueue.shift())
+        }
+      },
+      changeTemplateTab() {
+        AgnosticPreview.init()
+        setTimeout(() => {
+          Alpine.store('editors').debouncedTimberRender()
+          refreshTailwind()
+        }, 300)
+      },
+      changePageData() {},
+      setState() {
+        const prettifiedState = JSON.stringify(this.state, null, 2)
+        window.contextEditor.setValue(prettifiedState)
+      }
+    })
+  
+    window.builder = Alpine.store('builder')
+  })
+  
+  window.notificationManager = function (type, customMessage = null, customColor = null) {
+    console.log('NOTIFICATION FOR', type, customMessage, customColor)
+    const notifications = {
+      UNAUTHORIZED: {
+        message: 'Unauthorized',
+        type: 'error',
+        color: 'error',
+        duration: 5000
+      },
+      SAVING: {
+        message: 'Saving...',
+        type: 'info',
+        color: 'info',
+        duration: 2000
+      },
+      SAVED: {
+        message: 'Changes saved successfully',
+        type: 'success',
+        color: 'success',
+        duration: 3000
+      },
+      TAILWIND_COMPILE: {
+        message: 'Compiling Tailwind CSS',
+        type: 'info',
+        color: 'info',
+        duration: 2000
+      },
+      TAILWIND_COMPILED: {
+        message: 'Tailwind CSS compiled successfully',
+        type: 'success',
+        color: 'success',
+        duration: 3000
+      },
+      ERROR: {
+        message: 'An error occurred',
+        type: 'error',
+        color: 'error',
+        duration: 5000
+      },
+      LOADING: {
+        message: 'Loading...',
+        type: 'info',
+        color: 'info',
+        duration: 2000
+      },
+      LOADED: {
+        message: 'Content loaded successfully',
+        type: 'success',
+        color: 'success',
+        duration: 3000
+      },
+      PUBLISHING: {
+        message: 'Publishing changes',
+        type: 'info',
+        color: 'info',
+        duration: 2000
+      },
+      PUBLISHED: {
+        message: 'Changes published successfully',
+        type: 'success',
+        color: 'success',
+        duration: 3000
+      }
+    }
+  
+    const validColors = ['primary', 'accent', 'secondary', 'info', 'warning', 'error', 'success']
+  
+    let notification = notifications[type] || {
+      message: '',
+      type: type,
+      color: 'info',
+      duration: 3000
+    }
+  
+    // Override with custom message if provided
+    if (customMessage) {
+      notification.message = customMessage
+    }
+  
+    // Override with custom color if provided and valid
+    if (customColor && validColors.includes(customColor)) {
+      notification.color = customColor
+    }
+  
+    return notification
+  }
+  
+  function getLatestDoc() {
+    return Alpine.store('preview').doc
+  }
+  
+  function updateDoc(newDoc) {
+    Alpine.store('preview').doc = newDoc
+    Alpine.store('editors').debouncedTimberRender()
+    // Alpine.store("builder").addNotification("SUCCESS", "Document updated");
+  }
+  
+  function removeAllIds(htmlString) {
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlString
+  
+    const elements = tempDiv.getElementsByTagName('*')
+    for (let element of elements) {
+      const id = element.getAttribute('id')
+      if (id && id.includes('ag-')) {
+        element.removeAttribute('id')
+      }
+    }
+  
+    return tempDiv.innerHTML
+  }
+  
+  function refreshPreviewDOM() {
+    const previewIframe = document.getElementById('agnostic-preview-window')
+    if (previewIframe && previewIframe.contentWindow) {
+      // Access the iframe's document
+      const iframeDocument = previewIframe.contentDocument || previewIframe.contentWindow.document
+  
+      // Trigger DOMContentLoaded
+      const DOMContentLoadedEvent = new Event('DOMContentLoaded', {
+        bubbles: true,
+        cancelable: true
+      })
+      iframeDocument.dispatchEvent(DOMContentLoadedEvent)
+  
+      // Trigger load event on the iframe's window
+      const loadEvent = new Event('load', {
+        bubbles: true,
+        cancelable: true
+      })
+      previewIframe.contentWindow.dispatchEvent(loadEvent)
+  
+      // If there's a specific onload handler on the iframe, trigger it
+      if (typeof previewIframe.onload === 'function') {
+        previewIframe.onload()
+      }
+  
+      // If jQuery is available in the iframe, trigger its ready event
+      if (previewIframe.contentWindow.jQuery) {
+        previewIframe.contentWindow.jQuery(iframeDocument).ready()
+      }
+  
+      // Re-run any scripts that might need initialization
+      const scripts = iframeDocument.getElementsByTagName('script')
+      for (let i = 0; i < scripts.length; i++) {
+        const script = scripts[i]
+        const scriptContent = script.text || script.textContent || script.innerHTML || ''
+        if (scriptContent.trim()) {
+          try {
+            previewIframe.contentWindow.eval(scriptContent)
+          } catch (e) {
+            console.error('Error re-running script:', e)
+          }
+        }
+      }
+  
+      console.log('Iframe load events triggered and scripts re-run')
+    }
+  }
+  
+  function getSelectedElement(id = null) {
+    if (id) return getLatestDoc().getElementById(id)
+    const selectors = Alpine.store('preview').activeSelectors
+    if (selectors.length === 0) return getLatestDoc().getElementById('agnostic-content')
+    return getLatestDoc().querySelector(selectors[0])
+  }
+  
+  function onChangeElTag(newTag, id = null) {
+    const element = getSelectedElement(id)
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected to change tag')
+      return
+    }
+  
+    const newElement = document.createElement(newTag)
+    Array.from(element.attributes).forEach((attr) => {
+      newElement.setAttribute(attr.name, attr.value)
+    })
+    newElement.innerHTML = element.innerHTML
+    const newHTML = newElement.outerHTML
+  
+    Alpine.morph(element, newHTML, {
+      key: (el) => el.id,
+      updating: (el, toEl, childrenOnly, skip) => {
+        if (el._x_dataStack) {
+          toEl._x_dataStack = el._x_dataStack
+        }
+      }
+    })
+  
+    updateDoc(getLatestDoc())
+    window.selectElementById(newElement.id)
+    Alpine.store('builder').addNotification('SUCCESS', `Element tag changed to ${newTag}`)
+  }
+  
+  function onSwapElement(newHTML) {
+    const element = getSelectedElement()
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected to swap')
+      return
+    }
+  
+    Alpine.morph(element, newHTML)
+    const morphedHTML = GenerateSelectorIdentifiers(element.outerHTML)
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = morphedHTML
+    const newElement = tempDiv.firstElementChild
+    element.parentNode.replaceChild(newElement, element)
+  
+    updateDoc(getLatestDoc())
+    window.selectElementById(newElement.id)
+    Alpine.store('builder').addNotification('SUCCESS', 'Element swapped successfully')
+  }
+  
+  function onDeleteElement(id = null) {
+    const element = getSelectedElement(id)
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected to delete')
+      return
+    }
+  
+    window.selectElementById(element.id)
+    element.parentNode.removeChild(element)
+    updateDoc(getLatestDoc())
+    Alpine.store('preview').activeSelectors = []
+    Alpine.store('builder').addNotification('SUCCESS', 'Element deleted')
+  }
+  
+  function onDuplicateElement(id = null) {
+    const element = getSelectedElement(id)
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected to duplicate')
+      return
+    }
+  
+    const clone = element.cloneNode(true)
+    let htmlWithoutIds = removeAllIds(clone.outerHTML)
+    let html = GenerateSelectorIdentifiers(htmlWithoutIds)
+  
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = html
+    const newElement = tempDiv.firstElementChild
+  
+    element.parentNode.insertBefore(newElement, element.nextSibling)
+  
+    updateDoc(getLatestDoc())
+    window.selectElementById(newElement.id)
+    Alpine.store('builder').addNotification('SUCCESS', 'Element duplicated')
+  }
+  
+  async function onCopyElement(id = null) {
+    const element = getSelectedElement(id)
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected to copy')
+      return
+    }
+  
+    try {
+      const clone = element.cloneNode(true)
+      const htmlWithoutIds = removeAllIds(clone.outerHTML)
+      await navigator.clipboard.writeText(htmlWithoutIds)
+      Alpine.store('builder').addNotification('SUCCESS', 'Element copied to clipboard')
+    } catch (err) {
+      console.error('Failed to copy element: ', err)
+      Alpine.store('builder').addNotification('ERROR', 'Failed to copy element')
+    }
+  }
+  
+  async function onCutElement(id = null) {
+    const element = getSelectedElement(id)
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected to cut')
+      return
+    }
+  
+    try {
+      const clone = element.cloneNode(true)
+      const htmlWithoutIds = removeAllIds(clone.outerHTML)
+      await navigator.clipboard.writeText(htmlWithoutIds)
+      doubleClickElementByID()
+      element.parentNode.removeChild(element)
+      updateDoc(getLatestDoc())
+      Alpine.store('preview').activeSelectors = []
+      Alpine.store('builder').addNotification('SUCCESS', 'Element cut and copied to clipboard')
+    } catch (err) {
+      console.error('Failed to cut element: ', err)
+      Alpine.store('builder').addNotification('ERROR', 'Failed to cut element')
+    }
+  }
+  
+  async function onPasteElement(id = null) {
+    if (!navigator.clipboard) {
+      Alpine.store('builder').addNotification('ERROR', 'Clipboard API not available')
+      return
+    }
+  
+    try {
+      const pasted = await navigator.clipboard.readText()
+      if (!/<[a-z][\s\S]*>/i.test(pasted.trim())) {
+        Alpine.store('builder').addNotification('ERROR', 'Clipboard content is not valid HTML')
+        return
+      }
+  
+      const target = getSelectedElement(id)
+      console.log('PASTE TARGET', target)
+      if (!target) {
+        Alpine.store('builder').addNotification('ERROR', 'Target element not found')
+        return
+      }
+  
+      const htmlWithoutIds = removeAllIds(pasted)
+      const htmlWithNewIds = GenerateSelectorIdentifiers(htmlWithoutIds)
+  
+      const tempContainer = document.createElement('div')
+      tempContainer.innerHTML = htmlWithNewIds
+  
+      while (tempContainer.firstChild) {
+        target.appendChild(tempContainer.firstChild)
+      }
+  
+      updateDoc(getLatestDoc())
+  
+      const lastAppendedElement = target.lastElementChild
+      if (lastAppendedElement && lastAppendedElement.id) {
+        window.selectElementById(lastAppendedElement.id)
+      }
+      Alpine.store('builder').addNotification('SUCCESS', 'Element pasted successfully')
+      window.refreshTailwind()
+    } catch (err) {
+      console.error('Failed to paste element: ', err)
+      Alpine.store('builder').addNotification('ERROR', 'Failed to paste element')
+    }
+  }
+  
+  async function onPasteReplace(id) {
+    if (!id) {
+      Alpine.store('builder').addNotification('ERROR', 'Target ID is required for paste replace operation')
+      return
+    }
+  
+    if (!navigator.clipboard) {
+      Alpine.store('builder').addNotification('ERROR', 'Clipboard API not available')
+      return
+    }
+  
+    try {
+      const pasted = await navigator.clipboard.readText()
+      if (!/<[a-z][\s\S]*>/i.test(pasted.trim())) {
+        Alpine.store('builder').addNotification('ERROR', 'Clipboard content is not valid HTML')
+        return
+      }
+  
+      const target = getSelectedElement(id)
+      if (!target) {
+        Alpine.store('builder').addNotification('ERROR', 'Target element not found')
+        return
+      }
+  
+      const htmlWithoutIds = removeAllIds(pasted)
+      const htmlWithNewIds = GenerateSelectorIdentifiers(htmlWithoutIds)
+  
+      Alpine.morph(target, htmlWithNewIds)
+  
+      updateDoc(getLatestDoc())
+      window.selectElementById(id)
+      Alpine.store('builder').addNotification('SUCCESS', 'Element replaced successfully')
+    } catch (err) {
+      console.error('Failed to paste replace element: ', err)
+      Alpine.store('builder').addNotification('ERROR', 'Failed to paste replace element')
+    }
+  }
+  
+  function onInsertBlock(htmlString) {
+    const targetElement = getSelectedElement() || getLatestDoc().getElementById('agnostic-content')
+  
+    if (!targetElement) {
+      Alpine.store('builder').addNotification('ERROR', 'No target element found for insertion')
+      return
+    }
+  
+    const htmlWithoutIds = removeAllIds(htmlString)
+    const htmlWithNewIds = GenerateSelectorIdentifiers(htmlWithoutIds)
+  
+    const tempContainer = document.createElement('div')
+    tempContainer.innerHTML = htmlWithNewIds
+  
+    while (tempContainer.firstChild) {
+      targetElement.appendChild(tempContainer.firstChild)
+    }
+  
+    updateDoc(getLatestDoc())
+  
+    const lastInsertedElement = targetElement.lastElementChild
+    if (lastInsertedElement && lastInsertedElement.id) {
+      window.selectElementById(lastInsertedElement.id)
+    }
+    Alpine.store('builder').addNotification('SUCCESS', 'Block inserted successfully')
+  }
+  
+  function onBlockInnerHTMLChange(newHTML, id = null) {
+    const element = getSelectedElement(id)
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No target element found for HTML change')
+      return
+    }
+  
+    const clonedElement = element.cloneNode(true)
+    clonedElement.innerHTML = newHTML
+  
+    Alpine.morph(element, clonedElement.outerHTML)
+  
+    updateDoc(getLatestDoc())
+    Alpine.store('builder').addNotification('SUCCESS', 'Element inner HTML updated')
+  }
+  
+  function onMoveNext(id = null) {
+    const element = getSelectedElement(id)
+    if (!element || !element.nextElementSibling) {
+      Alpine.store('builder').addNotification('ERROR', 'Cannot move element next')
+      return
+    }
+  
+    element.parentNode.insertBefore(element.nextElementSibling, element)
+    updateDoc(getLatestDoc())
+    Alpine.store('builder').addNotification('SUCCESS', 'Element moved next')
+  }
+  
+  function onMovePrev(id = null) {
+    const element = getSelectedElement(id)
+    if (!element || !element.previousElementSibling) {
+      Alpine.store('builder').addNotification('ERROR', 'Cannot move element previous')
+      return
+    }
+  
+    element.parentNode.insertBefore(element, element.previousElementSibling)
+    updateDoc(getLatestDoc())
+    Alpine.store('builder').addNotification('SUCCESS', 'Element moved previous')
+  }
+  
+  function onSelectParent(id = null) {
+    const element = getSelectedElement(id)
+    if (!element || element.id === 'agnostic-content') {
+      Alpine.store('builder').addNotification('ERROR', 'Cannot select parent element')
+      return
+    }
+  
+    const parent = element.parentElement
+    if (parent) {
+      window.selectElementById(parent.id)
+      Alpine.store('builder').addNotification('SUCCESS', 'Parent element selected')
+    }
+  }
+  
+  function onSelectChild(id = null) {
+    const element = getSelectedElement(id)
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected')
+      return
+    }
+  
+    const firstChild = element.firstElementChild
+    if (firstChild) {
+      window.selectElementById(firstChild.id)
+      Alpine.store('builder').addNotification('SUCCESS', 'Child element selected')
+    } else {
+      Alpine.store('builder').addNotification('WARNING', 'No child element to select')
+    }
+  }
+  
+  function onSelectNext(id = null) {
+    const element = getSelectedElement(id)
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected')
+      return
+    }
+  
+    const nextSibling = element.nextElementSibling
+    if (nextSibling) {
+      window.selectElementById(nextSibling.id)
+      Alpine.store('builder').addNotification('SUCCESS', 'Next element selected')
+    } else {
+      Alpine.store('builder').addNotification('WARNING', 'No next element to select')
+    }
+  }
+  
+  function onSelectPrevious(id = null) {
+    const element = getSelectedElement(id)
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected')
+      return
+    }
+  
+    const previousSibling = element.previousElementSibling
+    if (previousSibling) {
+      window.selectElementById(previousSibling.id)
+      Alpine.store('builder').addNotification('SUCCESS', 'Previous element selected')
+    } else {
+      Alpine.store('builder').addNotification('WARNING', 'No previous element to select')
+    }
+  }
+  
+  function doubleClickElementByID() {
+    const element = getSelectedElement()
+    if (!element) {
+      Alpine.store('builder').addNotification('ERROR', 'No element selected to double click')
+      return
+    } else {
+      window.selectElementById(element.id)
+    }
+  }
+  
+  document.addEventListener('DOMContentLoaded', (event) => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+    const cmdKey = isMac ? 'Meta' : 'Control'
+  
+    const codeToKeyMap = {
+      KeyA: 'a',
+      KeyB: 'b',
+      KeyC: 'c',
+      KeyD: 'd',
+      KeyE: 'e',
+      KeyF: 'f',
+      KeyG: 'g',
+      KeyH: 'h',
+      KeyI: 'i',
+      KeyJ: 'j',
+      KeyK: 'k',
+      KeyL: 'l',
+      KeyM: 'm',
+      KeyN: 'n',
+      KeyO: 'o',
+      KeyP: 'p',
+      KeyQ: 'q',
+      KeyR: 'r',
+      KeyS: 's',
+      KeyT: 't',
+      KeyU: 'u',
+      KeyV: 'v',
+      KeyW: 'w',
+      KeyX: 'x',
+      KeyY: 'y',
+      KeyZ: 'z',
+      Digit0: '0',
+      Digit1: '1',
+      Digit2: '2',
+      Digit3: '3',
+      Digit4: '4',
+      Digit5: '5',
+      Digit6: '6',
+      Digit7: '7',
+      Digit8: '8',
+      Digit9: '9',
+      Escape: 'Escape'
+    }
+  
+    const shortcuts = {
+      Escape: doubleClickElementByID,
+      [`${cmdKey}+d`]: onDuplicateElement,
+      [`${cmdKey}+Shift+c`]: onCopyElement,
+      [`${cmdKey}+Shift+x`]: onCutElement,
+      [`${cmdKey}+Shift+v`]: onPasteElement,
+      [`${cmdKey}+Shift+r`]: () => {
+        const selectedElement = getSelectedElement()
+        if (selectedElement) {
+          onPasteReplace(selectedElement.id)
+        }
+      },
+      [`${cmdKey}+ArrowLeft`]: onSelectPrevious,
+      [`${cmdKey}+ArrowRight`]: onSelectNext,
+      [`${cmdKey}+ArrowUp`]: onSelectParent,
+      [`${cmdKey}+ArrowDown`]: onSelectChild,
+      [`${cmdKey}+Shift+ArrowUp`]: onMoveNext,
+      [`${cmdKey}+Shift+ArrowDown`]: onMovePrev,
+      [`${cmdKey}+Delete`]: onDeleteElement,
+      [`${cmdKey}+Backspace`]: onDeleteElement
+    }
+  
+    function handleKeyEvent(e, isFromIframe = false) {
+      console.log('Raw event:', e)
+  
+      let key = []
+      if (e.metaKey || e.ctrlKey) key.push(cmdKey)
+      if (e.shiftKey) key.push('Shift')
+  
+      let keyChar
+      if (e.code) {
+        if (e.code in codeToKeyMap) {
+          keyChar = codeToKeyMap[e.code]
+        } else if (e.code.startsWith('Key') || e.code.startsWith('Digit')) {
+          keyChar = e.code.slice(-1).toLowerCase()
+        } else {
+          keyChar = e.code
+        }
+      } else if (e.key) {
+        keyChar = e.key.toLowerCase()
+      } else {
+        console.warn("Event object does not contain 'code' or 'key' property:", e)
+        return false
+      }
+  
+      if (key.length === 0) {
+        key.push(keyChar)
+      } else {
+        key.push(keyChar)
+      }
+  
+      const shortcutKey = key.join('+')
+  
+      console.log('Processed keydown event:', 'Key:', e.key, 'Code:', e.code, 'Shortcut key:', shortcutKey, 'Is from iframe:', isFromIframe)
+  
+      const shortcutFunction = shortcuts[shortcutKey]
+      if (shortcutFunction) {
+        // Only call preventDefault if it's a real event (not from iframe)
+        if (!isFromIframe && e.preventDefault) {
+          e.preventDefault()
+        }
+        console.log('Executing shortcut:', shortcutKey)
+        shortcutFunction()
+        return true
+      }
+      return false
+    }
+  
+    document.addEventListener('keydown', (e) => {
+      handleKeyEvent(e, false)
+    })
+  
+    window.addEventListener('message', (event) => {
+      const iframe = document.querySelector('#agnostic-preview-window')
+      if (iframe && event.source === iframe.contentWindow) {
+        if (event.data.type === 'keydown') {
+          handleKeyEvent(event.data.keyEvent, true)
+        } else if (event.data.type === 'iframeReady') {
+          console.log('Iframe is ready')
+        }
+      }
+    })
+  
+    console.log(`Keyboard shortcuts initialized. Command key is ${cmdKey}.`)
+    console.log('Available shortcuts:', Object.keys(shortcuts))
+  })
+</script>

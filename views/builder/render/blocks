@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html
+  lang="en"
+  data-theme="light"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Blocks</title>
+    {{
+      include("builder/render/tw/blocks-compiler.html")
+    }}
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+      ::-webkit-scrollbar {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body
+    x-data="{ selectedBlock: null, onSelect(key) {
+    
+    // Check if key is selected
+    if (this.selectedBlock === key) {
+      this.selectedBlock = null;
+    } else {
+      this.selectedBlock = key;
+    }
+
+  } }"
+  >
+    {% set blocks = { 'accordion': { 'title': 'Accordion', 'description':
+    'Accordion is used for showing and hiding content but only one item can stay
+    open at a time.', 'image':
+    'https://img.daisyui.com/images/components/accordion.webp' }, 'alert': {
+    'title': 'Alert', 'description': 'Alert informs users about important
+    events.', 'image': 'https://img.daisyui.com/images/components/alert.webp' },
+    'artboard': { 'title': 'Artboard', 'description': 'Artboard provides fixed
+    size container to display a demo content on mobile size.', 'image':
+    'https://img.daisyui.com/images/components/artboard.webp' }, 'avatar': {
+    'title': 'Avatar', 'description': 'Avatars are used to show a thumbnail
+    representation of an individual or business in the interface.', 'image':
+    'https://img.daisyui.com/images/components/avatar.webp' }, 'badge': {
+    'title': 'Badge', 'description': 'Badges are used to inform the user of the
+    status of specific data.', 'image':
+    'https://img.daisyui.com/images/components/badge.webp' },
+    'bottom-navigation': { 'title': 'Bottom navigation', 'description': 'Bottom
+    navigation bar allows navigation between primary screens.', 'image':
+    'https://img.daisyui.com/images/components/bottom-navigation.webp' },
+    'breadcrumbs': { 'title': 'Breadcrumbs', 'description': 'Breadcrumbs helps
+    users to navigate through the website.', 'image':
+    'https://img.daisyui.com/images/components/breadcrumbs.webp' }, 'button': {
+    'title': 'Button', 'description': 'Buttons allow the user to take actions or
+    make choices.', 'image':
+    'https://img.daisyui.com/images/components/button.webp' }, 'card': {
+    'title': 'Card', 'description': 'Cards are used to group and display content
+    in a way that is easily readable.', 'image':
+    'https://img.daisyui.com/images/components/card.webp' }, 'carousel': {
+    'title': 'Carousel', 'description': 'Carousel show images or content in a
+    scrollable area.', 'image':
+    'https://img.daisyui.com/images/components/carousel.webp' }, 'chat': {
+    'title': 'Chat bubble', 'description': 'Chat bubbles are used to show one
+    line of conversation and all its data, including the author image, author
+    name, time, etc.', 'image':
+    'https://img.daisyui.com/images/components/chat.webp' }, 'checkbox': {
+    'title': 'Checkbox', 'description': 'Checkboxes are used to select or
+    deselect a value.', 'image':
+    'https://img.daisyui.com/images/components/checkbox.webp' }, 'collapse': {
+    'title': 'Collapse', 'description': 'Collapse is used for showing and hiding
+    content.', 'image':
+    'https://img.daisyui.com/images/components/collapse.webp' }, 'countdown': {
+    'title': 'Countdown', 'description': 'Countdown gives you a transition
+    effect of changing numbers.', 'image':
+    'https://img.daisyui.com/images/components/countdown.webp' }, 'diff': {
+    'title': 'Diff', 'description': 'Diff component shows a side-by-side
+    comparison of two items.', 'image':
+    'https://img.daisyui.com/images/components/diff.webp' }, 'divider': {
+    'title': 'Divider', 'description': 'Divider will be used to separate content
+    vertically or horizontally.', 'image':
+    'https://img.daisyui.com/images/components/divider.webp' }, 'drawer': {
+    'title': 'Drawer', 'description': 'Drawer is a grid layout that can
+    show/hide a sidebar on the left or right side of the page.', 'image':
+    'https://img.daisyui.com/images/components/drawer.webp' }, 'dropdown': {
+    'title': 'Dropdown', 'description': 'Dropdown can open a menu or any other
+    element when the button is clicked.', 'image':
+    'https://img.daisyui.com/images/components/dropdown.webp' }, 'file-input': {
+    'title': 'File Input', 'description': 'File Input is a an input field for
+    uploading files.', 'image':
+    'https://img.daisyui.com/images/components/file-input.webp' }, 'footer': {
+    'title': 'Footer', 'description': 'Footer can contain logo, copyright
+    notice, and links to other pages.', 'image':
+    'https://img.daisyui.com/images/components/footer.webp' }, 'hero': {
+    'title': 'Hero', 'description': 'Hero is a component for displaying a large
+    box or image with a title and description.', 'image':
+    'https://img.daisyui.com/images/components/hero.webp' }, 'indicator': {
+    'title': 'Indicator', 'description': 'Indicators are used to place an
+    element on the corner of another element.', 'image':
+    'https://img.daisyui.com/images/components/indicator.webp' }, 'input': {
+    'title': 'Text Input', 'description': 'Text Input is a simple input field.',
+    'image': 'https://img.daisyui.com/images/components/input.webp' }, 'join': {
+    'title': 'Join', 'description': 'Join is a container for grouping multiple
+    items, it can be used to group buttons, inputs, or any other element.',
+    'image': 'https://img.daisyui.com/images/components/join.webp' }, 'kbd': {
+    'title': 'Kbd', 'description': 'Kbd is used to display keyboard shortcuts.',
+    'image': 'https://img.daisyui.com/images/components/kbd.webp' }, 'link': {
+    'title': 'Link', 'description': 'Link adds the missing underline style to
+    links.', 'image': 'https://img.daisyui.com/images/components/link.webp' },
+    'loading': { 'title': 'Loading', 'description': 'Loading shows an animation
+    to indicate that something is loading.', 'image':
+    'https://img.daisyui.com/images/components/loading.webp' }, 'mask': {
+    'title': 'Mask', 'description': 'Mask crops the content of the element to
+    common shapes.', 'image':
+    'https://img.daisyui.com/images/components/mask.webp' }, 'menu': { 'title':
+    'Menu', 'description': 'Menu is used to display a list of links vertically
+    or horizontally.', 'image':
+    'https://img.daisyui.com/images/components/menu.webp' }, 'mockup-browser': {
+    'title': 'Browser mockup', 'description': 'Browser mockup shows a box that
+    looks like a browser window.', 'image':
+    'https://img.daisyui.com/images/components/mockup-browser.webp' },
+    'mockup-code': { 'title': 'Code mockup', 'description': 'Code mockup is used
+    to show a block of code in a box that looks like a code editor.', 'image':
+    'https://img.daisyui.com/images/components/mockup-code.webp' },
+    'mockup-phone': { 'title': 'Phone mockup', 'description': 'Phone mockup
+    shows a mockup of an iPhone.', 'image':
+    'https://img.daisyui.com/images/components/mockup-phone.webp' },
+    'mockup-window': { 'title': 'Window mockup', 'description': 'Window mockup
+    shows a box that looks like an operating system window.', 'image':
+    'https://img.daisyui.com/images/components/mockup-window.webp' }, 'modal': {
+    'title': 'Modal', 'description': 'Modal is used to show a dialog or a box
+    when you click a button.', 'image':
+    'https://img.daisyui.com/images/components/modal.webp' }, 'navbar': {
+    'title': 'Navbar', 'description': 'Navbar is used to show a navigation bar
+    on the top of the page.', 'image':
+    'https://img.daisyui.com/images/components/navbar.webp' }, 'pagination': {
+    'title': 'Pagination', 'description': 'Pagination is a group of buttons that
+    allow the user to navigate between a set of related content.', 'image':
+    'https://img.daisyui.com/images/components/pagination.webp' }, 'progress': {
+    'title': 'Progress', 'description': 'Progress bar can be used to show the
+    progress of a task or to show the passing of time.', 'image':
+    'https://img.daisyui.com/images/components/progress.webp' },
+    'radial-progress': { 'title': 'Radial progress', 'description': 'Radial
+    progress can be used to show the progress of a task or to show the passing
+    of time.', 'image':
+    'https://img.daisyui.com/images/components/radial-progress.webp' }, 'radio':
+    { 'title': 'Radio', 'description': 'Radio buttons allow the user to select
+    one option from a set.', 'image':
+    'https://img.daisyui.com/images/components/radio.webp' }, 'range': {
+    'title': 'Range slider', 'description': 'Range slider is used to select a
+    value by sliding a handle.', 'image':
+    'https://img.daisyui.com/images/components/range.webp' }, 'rating': {
+    'title': 'Rating', 'description': 'Rating is a set of radio buttons that
+    allow the user to rate something.', 'image':
+    'https://img.daisyui.com/images/components/rating.webp' }, 'select': {
+    'title': 'Select', 'description': 'Select is used to pick a value from a
+    list of options.', 'image':
+    'https://img.daisyui.com/images/components/select.webp' }, 'skeleton': {
+    'title': 'Skeleton', 'description': 'Skeleton is a component that can be
+    used to show a loading state of a component.', 'image':
+    'https://img.daisyui.com/images/components/skeleton.webp' }, 'stack': {
+    'title': 'Stack', 'description': 'Stack visually puts elements on top of
+    each other.', 'image':
+    'https://img.daisyui.com/images/components/stack.webp' }, 'stat': { 'title':
+    'Stat', 'description': 'Stat is used to show numbers and data in a box.',
+    'image': 'https://img.daisyui.com/images/components/stat.webp' }, 'steps': {
+    'title': 'Steps', 'description': 'Steps can be used to show a list of steps
+    in a process.', 'image':
+    'https://img.daisyui.com/images/components/steps.webp' }, 'swap': { 'title':
+    'Swap', 'description': 'Swap allows you to toggle the visibility of two
+    elements using a checkbox or a class name.', 'image':
+    'https://img.daisyui.com/images/components/swap.webp' }, 'tab': { 'title':
+    'Tabs', 'description': 'Tabs can be used to show a list of links in a tabbed
+    format.', 'image': 'https://img.daisyui.com/images/components/tab.webp' },
+    'table': { 'title': 'Table', 'description': 'Table can be used to show a
+    list of data in a table format.', 'image':
+    'https://img.daisyui.com/images/components/table.webp' }, 'textarea': {
+    'title': 'Textarea', 'description': 'Textarea allows users to enter text in
+    multiple lines.', 'image':
+    'https://img.daisyui.com/images/components/textarea.webp' },
+    'theme-controller': { 'title': 'Theme Controller', 'description': 'If a
+    checked checkbox input or a checked radio input with theme-controller class
+    exists in the page, The page will have the same theme as that input\'s
+    value.', 'image':
+    'https://img.daisyui.com/images/components/theme-controller.webp' },
+    'timeline': { 'title': 'Timeline', 'description': 'Timeline component shows
+    a list of events in chronological order.', 'image':
+    'https://img.daisyui.com/images/components/timeline.webp' }, 'toast': {
+    'title': 'Toast', 'description': 'Toast is a wrapper to stack elements,
+    positioned on the corner of page.', 'image':
+    'https://img.daisyui.com/images/components/toast.webp' }, 'toggle': {
+    'title': 'Toggle', 'description': 'Toggle is a checkbox that is styled to
+    look like a switch button.', 'image':
+    'https://img.daisyui.com/images/components/toggle.webp' }, 'tooltip': {
+    'title': 'Tooltip', 'description': 'Tooltip can be used to show a message
+    when hovering over an element.', 'image':
+    'https://img.daisyui.com/images/components/tooltip.webp' } } %} {# Make an
+    Accordion, this one of is called Blocks below, make another for "Typography,
+    Layouts, etc." #}
+    <div class="p-4">
+      <div
+        x-bind:class="selectedBlock === null ? 'grid-cols-2' : 'grid-cols-1'"
+        class="grid"
+      >
+        {% for key, block in blocks %}
+        <div
+          x-show="selectedBlock === '{{ key }}' || selectedBlock === null"
+          class="transition-all duration-200 cursor-pointer card card-compact hover:bg-base-200 hover:-translate-y-1"
+          @click="onSelect('{{ key }}')"
+        >
+          <figure
+            class="px-4 pt-4 overflow-hidden rounded-2xl"
+            x-show="selectedBlock === null"
+          >
+            <img
+              loading="lazy"
+              class="border rounded-lg border-base-content bg-base-300 border-opacity-5"
+              alt="{{ block.title }}"
+              src="{{ block.image }}"
+            />
+          </figure>
+          <div
+            x-bind:class="selectedBlock === null ? 'flex items-center text-center' : 'text-left'"
+            class="card-body"
+          >
+            <h2 class="text-5xl card-title">{{ block.title }}</h2>
+          </div>
+        </div>
+        <div
+          x-show="selectedBlock === '{{ key }}'"
+          class="grid w-full h-full grid-cols-1 gap-4 overflow-hidden"
+        >
+          <div>
+            <div class="mockup-window bg-base-300">
+              {% set template_path = 'builder/premade/blocks/' ~ key %} {%
+              include template_path ignore missing with {'block': block} only %}
+            </div>
+          </div>
+          <div>
+            <div class="mockup-window bg-base-300">
+              {% set template_path = 'builder/premade/blocks/example' %} {%
+              include template_path ignore missing with {'block': block} only %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </body>
+</html>

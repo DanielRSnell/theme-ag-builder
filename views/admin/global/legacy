@@ -1,0 +1,487 @@
+{{ include('admin/global/head.twig') }}
+
+
+<div x-data="settingsManager()" x-init="init()" class="absolute top-0 left-0 mt-[var(--maintoolbar-height)] absolute top-0 left-0 z-[9999] h-screen bg-base-200 text-base-content flex overflow-hidden w-full">
+  <!-- Vertical Tab Navigation -->
+  <div class="flex flex-col items-center w-1/4 h-full p-4 overflow-y-auto bg-base-300">
+    <!-- Horizontal Join with icons for Settings, Routing, Code, and Builder -->
+    <div class="mx-auto mb-4 join join-horizontal">
+      <button
+        class="btn join-item btn-sm"
+        :class="{ 'btn-active': settings_tab === 'Settings' }"
+        x-on:click="settings_tab = 'Settings'"
+        data-tippy-content="Settings"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+      <button
+        class="btn join-item btn-sm"
+        :class="{ 'btn-active': settings_tab === 'Routing' }"
+        x-on:click="settings_tab = 'Routing'"
+        data-tippy-content="Routing"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+        </svg>
+      </button>
+      <button
+        class="btn join-item btn-sm"
+        :class="{ 'btn-active': settings_tab === 'Code' }"
+        x-on:click="settings_tab = 'Code'"
+        data-tippy-content="Global Header / Footer"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+      </button>
+      <button
+        class="btn join-item btn-sm"
+        :class="{ 'btn-active': settings_tab === 'Builder' }"
+        x-on:click="settings_tab = 'Builder'"
+        data-tippy-content="Builder"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Routing tabs -->
+    <ul x-show="settings_tab == 'Routing'" class="w-full menu bg-base-200 rounded-box">
+      <template x-for="tab in tabs" :key="tab">
+        <li
+          
+            :class="{ 'active': activeTab === tab }"
+            @click="activeTab = tab"
+            x-text="tabLabels[tab]"
+          ></a>
+        </li>
+      </template>
+    </ul>
+  </div>
+
+
+  <!-- Content Area -->
+  <div class="w-3/4 h-full p-4 overflow-y-auto" x-show="settings_tab == 'Routing'">
+    <!-- Front Page -->
+    <div x-show="activeTab === 'front_page'" class="space-y-4">
+      <select x-model="routes.front_page" class="w-full select select-sm select-bordered" @change="updateRoute('front_page')">
+        <option value="">Select a view</option>
+        <template x-for="(label, value) in viewOptions" :key="value">
+          <option :value="value" x-text="label"></option>
+        </template>
+      </select>
+    </div>
+
+    <div x-show="activeTab === 'blog_index'" class="space-y-4">
+    <select x-model="routes.blog_index" class="w-full select select-sm select-bordered" @change="updateBlogIndex()">
+      <option value="">Select a view</option>
+      <template x-for="(label, value) in viewOptions" :key="value">
+        <option :value="value" x-text="label"></option>
+      </template>
+    </select>
+  </div>
+
+    <!-- Global Partials -->
+    <div x-show="activeTab === 'global_partials'" class="space-y-4">
+      <template x-for="(partial, index) in routes.global_partials" :key="index">
+        <div class="flex items-center mb-2 space-x-2">
+          <select x-model="partial.type" class="flex-1 select select-sm select-bordered" @change="updateRoute('global_partials')">
+            <option value="header">Header</option>
+            <option value="footer">Footer</option>
+            <option value="hook">Hook</option>
+          </select>
+          <select x-model="partial.view" class="flex-1 select select-sm select-bordered" @change="updateRoute('global_partials')">
+            <option value="">Select a view</option>
+            <template x-for="(label, value) in viewOptions" :key="value">
+              <option :value="value" x-text="label"></option>
+            </template>
+          </select>
+          <input x-show="partial.type === 'hook'" x-model="partial.hook_name" placeholder="Hook name" class="flex-1 input input-sm input-bordered" @input="updateRoute('global_partials')">
+          <button class="btn btn-xs btn-circle btn-error" @click="removeItem('global_partials', index)">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+      </template>
+      <button class="btn btn-sm btn-primary" @click="addItem('global_partials', {type: 'header', view: '', hook_name: ''})">
+        <i class="ri-add-line"></i> Add Partial
+      </button>
+    </div>
+
+    <!-- Post Type Views -->
+    <div x-show="activeTab === 'post_types'" class="space-y-4">
+      <template x-for="(ptv, index) in routes.post_types" :key="index">
+        <div class="flex items-center mb-2 space-x-2">
+          <select x-model="ptv.post_type" class="flex-1 select select-sm select-bordered" @change="updateRoute('post_types')">
+            <option value="">Select a post type</option>
+            <template x-for="(label, value) in postTypeOptions" :key="value">
+              <option :value="value" x-text="label"></option>
+            </template>
+          </select>
+          <select x-model="ptv.view" class="flex-1 select select-sm select-bordered" @change="updateRoute('post_types')">
+            <option value="">Select a view</option>
+            <template x-for="(label, value) in viewOptions" :key="value">
+              <option :value="value" x-text="label"></option>
+            </template>
+          </select>
+          <button class="btn btn-xs btn-circle btn-error" @click="removeItem('post_types', index)">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+      </template>
+      <button class="btn btn-sm btn-primary" @click="addItem('post_types', {post_type: '', view: ''})">
+        <i class="ri-add-line"></i> Add Post Type View
+      </button>
+    </div>
+
+    <!-- Archive Views -->
+    <div x-show="activeTab === 'archives'" class="space-y-4">
+      <template x-for="(av, index) in routes.archives" :key="index">
+        <div class="flex items-center mb-2 space-x-2">
+          <select x-model="av.archive_type" class="flex-1 select select-sm select-bordered" @change="updateRoute('archives')">
+            <option value="">Select an archive type</option>
+            <template x-for="(label, value) in archiveTypeOptions" :key="value">
+              <option :value="value" x-text="label"></option>
+            </template>
+          </select>
+          <select x-model="av.view" class="flex-1 select select-sm select-bordered" @change="updateRoute('archives')">
+            <option value="">Select a view</option>
+            <template x-for="(label, value) in viewOptions" :key="value">
+              <option :value="value" x-text="label"></option>
+            </template>
+          </select>
+          <button class="btn btn-xs btn-circle btn-error" @click="removeItem('archives', index)">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+      </template>
+      <button class="btn btn-sm btn-primary" @click="addItem('archives', {archive_type: '', view: ''})">
+        <i class="ri-add-line"></i> Add Archive View
+      </button>
+    </div>
+
+    <!-- Search Results -->
+    <div x-show="activeTab === 'search_results'" class="space-y-4">
+      <select x-model="routes.search_results" class="w-full select select-sm select-bordered" @change="updateRoute('search_results')">
+        <option value="">Select a view</option>
+        <template x-for="(label, value) in viewOptions" :key="value">
+          <option :value="value" x-text="label"></option>
+        </template>
+      </select>
+    </div>
+
+    <!-- Error Page -->
+    <div x-show="activeTab === 'error_page'" class="space-y-4">
+      <select x-model="routes.error_page" class="w-full select select-sm select-bordered" @change="updateRoute('error_page')">
+        <option value="">Select a view</option>
+        <template x-for="(label, value) in viewOptions" :key="value">
+          <option :value="value" x-text="label"></option>
+        </template>
+      </select>
+    </div>
+
+    <!-- Term Views -->
+    <div x-show="activeTab === 'terms'" class="space-y-4">
+      <template x-for="(tv, index) in routes.terms" :key="index">
+        <div class="flex items-center mb-2 space-x-2">
+          <select x-model="tv.taxonomy" class="flex-1 select select-sm select-bordered" @change="updateRoute('terms')">
+            <option value="">Select a taxonomy</option>
+            <template x-for="(label, value) in taxonomyOptions" :key="value">
+              <option :value="value" x-text="label"></option>
+            </template>
+          </select>
+          <select x-model="tv.view" class="flex-1 select select-sm select-bordered" @change="updateRoute('terms')">
+            <option value="">Select a view</option>
+            <template x-for="(label, value) in viewOptions" :key="value">
+              <option :value="value" x-text="label"></option>
+            </template>
+          </select>
+          <button class="btn btn-xs btn-circle btn-error" @click="removeItem('terms', index)">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+      </template>
+      <button class="btn btn-sm btn-primary" @click="addItem('terms', {taxonomy: '', view: ''})">
+        <i class="ri-add-line"></i> Add Term View
+      </button>
+    </div>
+
+    <!-- Single Views -->
+      <!-- Single Views -->
+    <div x-show="activeTab === 'singles'" class="space-y-4">
+      <template x-for="(sv, index) in routes.singles" :key="index">
+        <div class="flex items-center mb-2 space-x-2">
+          <select x-model="sv.post_type" class="flex-1 select select-sm select-bordered" @change="updatePostOptions(index)">
+            <option value="">Select a post type</option>
+            <template x-for="(label, value) in postTypeOptions" :key="value">
+              <option :value="value" x-text="label"></option>
+            </template>
+          </select>
+          <div class="relative flex-1">
+            <input 
+              x-model="sv.postSearch" 
+              @input="filterPosts(index)" 
+              @focus="showPostOptions(index)"
+              @blur="hidePostOptions(index)"
+              :placeholder="sv.post ? getPostLabel(sv.post) : 'Search and select a post...'" 
+              class="w-full input input-sm input-bordered"
+            >
+            <div 
+              x-show="sv.showPostOptions" 
+              class="absolute z-10 w-full mt-1 overflow-auto shadow-lg bg-base-100 max-h-60"
+            >
+              <template x-for="post in sv.filteredPosts" :key="post.id">
+                <div 
+                  @mousedown.prevent="selectPost(index, post)"
+                  class="p-2 cursor-pointer hover:bg-base-200"
+                  x-text="post.title"
+                ></div>
+              </template>
+            </div>
+          </div>
+          <select x-model="sv.view" class="flex-1 select select-sm select-bordered" @change="updateRoute('singles')">
+            <option value="">Select a view</option>
+            <template x-for="(label, value) in viewOptions" :key="value">
+              <option :value="value" x-text="label"></option>
+            </template>
+          </select>
+          <button class="btn btn-xs btn-circle btn-error" @click="removeItem('singles', index)">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+      </template>
+      <button class="btn btn-sm btn-primary" @click="addItem('singles', {post_type: '', post: '', view: '', postSearch: '', filteredPosts: [], showPostOptions: false})">
+        <i class="ri-add-line"></i> Add Single View
+      </button>
+    </div>
+    </dov>
+</div>
+
+<style>
+#wpbody {
+    // make it not relative
+    position: static!important;
+}
+</style>
+
+<script>
+ function settingsManager() {
+  return {
+     settings_tab: "Routing",
+    activeTab: "front_page",
+    isLoading: true,
+    errorMessage: "",
+    nonce: "{{ function('wp_create_nonce', 'wp_rest') }}",
+    tabs: [
+      "front_page",
+      "blog_index",
+      "global_partials",
+      "post_types",
+      "archives",
+      "search_results",
+      "error_page",
+      "terms",
+      "singles",
+    ],
+    tabLabels: {
+      front_page: "Front Page",
+      blog_index: "Blog Index",
+      global_partials: "Global Partials",
+      post_types: "Post Types",
+      archives: "Archives",
+      search_results: "Search",
+      error_page: "404",
+      terms: "Terms",
+      singles: "Singles",
+    },
+    routes: {},
+    viewOptions: {},
+    postTypeOptions: {},
+    archiveTypeOptions: {},
+    taxonomyOptions: {},
+    termOptions: {},
+    postOptions: {},
+
+    async init() {
+      this.isLoading = true;
+      this.errorMessage = "";
+      try {
+        await this.hydrateOptions();
+      } catch (error) {
+        this.errorMessage = "Failed to initialize routing manager. Please try again.";
+        console.error("Initialization error:", error);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async hydrateOptions() {
+      try {
+        const [routingData, formData] = await Promise.all([
+          this.fetchData("/wp-json/agnostic/v1/routing"),
+          this.fetchData("/wp-json/agnostic/v1/routing/form-data"),
+        ]);
+
+        this.routes = routingData;
+        this.viewOptions = formData.views;
+        this.postTypeOptions = formData.post_types;
+        this.archiveTypeOptions = formData.archive_types;
+        this.taxonomyOptions = formData.taxonomies;
+        this.termOptions = formData.terms;
+        this.postOptions = formData.posts;
+
+        // Initialize arrays if they don't exist
+        ['global_partials', 'post_types', 'archives', 'terms', 'singles'].forEach(key => {
+          if (!Array.isArray(this.routes[key])) {
+            this.routes[key] = [];
+          }
+        });
+
+        // Initialize singles with necessary properties
+        this.routes.singles.forEach(single => {
+          single.filteredPosts = [];
+          single.allPosts = [];
+          single.postSearch = '';
+          single.showPostOptions = false;
+        });
+
+        console.log("All options hydrated successfully");
+      } catch (error) {
+        console.error("Error hydrating options:", error);
+        throw error;
+      }
+    },
+
+    async fetchData(url) {
+      const response = await fetch(url, {
+        headers: {
+          "X-WP-Nonce": this.nonce,
+        },
+      });
+      if (!response.ok) throw new Error(`Failed to fetch data from ${url}`);
+      return await response.json();
+    },
+    updateBlogIndex() {
+      this.updateRoute('blog_index');
+    },
+    async updateRoute(routeType) {
+      this.isLoading = true;
+      this.errorMessage = "";
+      try {
+        const response = await fetch("/wp-json/agnostic/v1/routing", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-WP-Nonce": this.nonce,
+          },
+          body: JSON.stringify(this.routes),
+        });
+
+        if (!response.ok) throw new Error("Failed to update route");
+        console.log(`${routeType} updated successfully`);
+        await this.hydrateOptions();
+      } catch (error) {
+        console.error("Error updating route:", error);
+        this.errorMessage = `Failed to update ${this.tabLabels[routeType]}. Please try again.`;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    addItem(routeType, item) {
+      if (!Array.isArray(this.routes[routeType])) {
+        this.routes[routeType] = [];
+      }
+      if (routeType === 'singles') {
+        item.filteredPosts = [];
+        item.allPosts = [];
+        item.postSearch = '';
+        item.showPostOptions = false;
+      }
+      this.routes[routeType].push(item);
+      this.updateRoute(routeType);
+    },
+
+    removeItem(routeType, index) {
+      if (Array.isArray(this.routes[routeType])) {
+        this.routes[routeType].splice(index, 1);
+        this.updateRoute(routeType);
+      }
+    },
+
+    async updatePostOptions(index) {
+      const postType = this.routes.singles[index].post_type;
+      if (postType) {
+        try {
+          let endpoint = postType === 'post' ? 'posts' : 
+                         postType === 'page' ? 'pages' : 
+                         postType;
+          const posts = await this.fetchData(`/wp-json/wp/v2/${endpoint}?per_page=100`);
+          this.routes.singles[index].filteredPosts = posts.map(post => ({id: post.id, title: post.title.rendered}));
+          this.routes.singles[index].allPosts = [...this.routes.singles[index].filteredPosts];
+        } catch (error) {
+          console.error("Error fetching posts:", error);
+          this.routes.singles[index].filteredPosts = [];
+          this.routes.singles[index].allPosts = [];
+        }
+      } else {
+        this.routes.singles[index].filteredPosts = [];
+        this.routes.singles[index].allPosts = [];
+      }
+      this.routes.singles[index].post = '';
+      this.routes.singles[index].postSearch = '';
+    },
+
+    filterPosts(index) {
+      const search = this.routes.singles[index].postSearch.toLowerCase();
+      this.routes.singles[index].filteredPosts = this.routes.singles[index].allPosts.filter(post => 
+        post.title.toLowerCase().includes(search)
+      );
+    },
+
+    showPostOptions(index) {
+      this.routes.singles[index].showPostOptions = true;
+    },
+
+    hidePostOptions(index) {
+      setTimeout(() => {
+        this.routes.singles[index].showPostOptions = false;
+      }, 200);
+    },
+
+    selectPost(index, post) {
+      this.routes.singles[index].post = post.id;
+      this.routes.singles[index].postSearch = post.title;
+      this.hidePostOptions(index);
+      this.updateRoute('singles');
+    },
+
+    getViewLabel(viewId) {
+      return this.viewOptions[viewId] || "Unknown View";
+    },
+
+    getPostTypeLabel(postType) {
+      return this.postTypeOptions[postType] || "Unknown Post Type";
+    },
+
+    getArchiveTypeLabel(archiveType) {
+      return this.archiveTypeOptions[archiveType] || "Unknown Archive Type";
+    },
+
+    getTaxonomyLabel(taxonomy) {
+      return this.taxonomyOptions[taxonomy] || "Unknown Taxonomy";
+    },
+
+    getTermLabel(termId) {
+      return this.termOptions[termId] || "Unknown Term";
+    },
+
+    getPostLabel(postId) {
+      return this.postOptions[postId] || "Unknown Post";
+    },
+  };
+}
+</script>

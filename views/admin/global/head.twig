@@ -1,0 +1,42 @@
+<script src="https://cdn.tailwindcss.com"></script>
+<link
+  href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"
+  rel="stylesheet"
+/>
+{{ include('styles/tw/compile.html') }}
+
+<script
+  defer
+  src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"
+></script>
+<script
+  defer
+  src="https://cdn.jsdelivr.net/npm/@alpinejs/morph@3.x.x/dist/cdn.min.js"
+></script>
+<script
+  defer
+  src="https://cdn.jsdelivr.net/npm/@imacrayon/alpine-ajax@0.7.0/dist/cdn.min.js"
+></script>
+<script src="//unpkg.com/alpinejs" defer></script>
+
+<script id="window-shortcuts">
+  window.refreshTailwind = function () {
+    window.ThemeManager.refreshTW();
+    window.StylebookManager.refreshTW();
+    window.FontManager.refreshTW();
+    window.ComponentsManager.refreshTW();
+    if (window.refreshTW) {
+      window.refreshTW();
+    }
+  };
+
+   window.twRefresh = function () {
+    window.ThemeManager.refreshTW();
+    window.StylebookManager.refreshTW();
+    window.FontManager.refreshTW();
+    window.ComponentsManager.refreshTW();
+    if (window.refreshTW) {
+      window.refreshTW();
+    }
+  };
+</script>

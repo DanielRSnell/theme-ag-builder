@@ -1,0 +1,67 @@
+<!-- Video and Content Section -->
+<div x-show="activeMenuItem == 'dashboard'" class="flex flex-col gap-8 mb-8 lg:flex-row">
+  <!-- Video Section -->
+  <div class="lg:w-1/2">
+    <div class="overflow-hidden aspect-video rounded-3xl">
+      <iframe class="w-full h-full rounded-lg shadow-lg" src="https://www.youtube.com/embed/your_video_id" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <!-- Content Section -->
+  <div class="flex flex-col justify-center items-left lg:w-1/2">
+    <div class="max-w-xl mx-auto">
+      <h3 class="mb-4 text-5xl font-semibold text-base-content">Welcome to Agnostic</h3>
+      <p class="mb-6 text-base-content/80">Agnostic is a powerful tool for creating and managing your WordPress content. With its intuitive interface and robust features, you can streamline your workflow and create stunning websites with ease.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Action Cards -->
+<div x-show="activeMenuItem == 'dashboard'" class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+  <div class="relative overflow-hidden shadow-md shadow-primary/10 glass card bg-base-200 ring-1 ring-primary/10">
+    <div class="absolute top-0 left-0 w-full h-full bg-base-300/80 backdrop-blur-md"></div>
+
+    <div class="z-50 card-body">
+      <h2 class="card-title text-primary"><i class="mr-2 ri-add-circle-line"></i>Create View</h2>
+      <p class="text-base-content/70">Start a new view for your website.</p>
+      <div class="justify-start card-actions">
+        <button class="w-full btn btn-primary btn-sm">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="relative overflow-hidden shadow-md shadow-primary/10 glass card bg-base-200 ring-1 ring-primary/10">
+    <div class="absolute top-0 left-0 w-full h-full bg-base-300/80 backdrop-blur-md"></div>
+
+    <div class="z-50 card-body">
+      <h2 class="card-title text-secondary"><i class="mr-2 ri-list-check-2"></i>Manage Views</h2>
+      <p class="text-base-content/70">Edit and organize your existing views.</p>
+      <div class="justify-end card-actions">
+        <button class="w-full btn btn-secondary btn-sm">Manage</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="relative overflow-hidden shadow-md shadow-primary/10 glass card bg-base-200 ring-1 ring-primary/10">
+    <div class="absolute top-0 left-0 w-full h-full bg-base-300/80 backdrop-blur-md"></div>
+
+    <div class="z-50 card-body">
+      <h2 class="card-title text-accent"><i class="mr-2 ri-settings-3-line"></i>Settings</h2>
+      <p class="text-base-content/70">Configure your Agnostic preferences.</p>
+      <div class="justify-end card-actions">
+        <button class="w-full btn btn-accent btn-sm">Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="relative overflow-hidden shadow-md shadow-primary/10 glass card bg-base-200 ring-1 ring-primary/10">
+    <div class="absolute top-0 left-0 w-full h-full bg-base-300/80 backdrop-blur-md"></div>
+    <div class="z-50 card-body">
+      <h2 class="card-title text-info"><i class="mr-2 ri-question-line"></i>Help</h2>
+      <p class="text-base-content/70">Get support and learn more about Agnostic.</p>
+      <div class="justify-end card-actions">
+        <button class="w-full btn btn-info btn-sm">Help</button>
+      </div>
+    </div>
+  </div>
+</div>

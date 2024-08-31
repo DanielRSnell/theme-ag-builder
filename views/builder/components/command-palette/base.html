@@ -1,0 +1,233 @@
+<div x-data="TabManager()" class="relative" x-init="()">
+  <section 
+    class="bg-base-300/10 backdrop-blur-sm z-[9999999] fixed transition-all duration-300 ease-in-out"
+    :class="[
+      isCentered ? 'inset-0 flex justify-center items-center' : 'left-0 top-0 bottom-0 w-4/5 mt-[var(--maintoolbar-height)]',
+      isMinimized ? 'hidden pointer-events-none' : 'block'
+    ]"
+  >
+    <div 
+      class="p-2 transition-all duration-300 shadow-xl ring-1 ring-primary/10 bg-base-300/90 backdrop-blur-md rounded-3xl shadow-primary/10"
+      :class="isCentered ? 'w-full max-w-[95%] h-[85%]' : 'w-full h-full mt-0'"
+    >
+      <div class="grid h-full gap-4" :class="isCentered ? 'grid-cols-6' : 'grid-cols-4'">
+        <nav class="flex flex-col overflow-hidden bg-base-200 rounded-2xl" :class="isCentered ? 'col-span-1' : 'col-span-1'">
+          <div class="flex items-center justify-between p-4 border-b border-base-300">
+            <h2 class="text-lg font-bold">Navigation</h2>
+            <div class="flex space-x-2">
+              <button @click="toggleCentered()" class="btn btn-ghost btn-sm">
+                <i class="text-lg ri-layout-left-2-line" x-show="!isCentered"></i>
+                <i class="text-lg ri-layout-right-2-line" x-show="isCentered"></i>
+              </button>
+              <button @click="minimize()" class="btn btn-ghost btn-sm">
+                <i class="text-lg ri-subtract-line"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex-grow p-2 overflow-y-auto">
+            <template x-for="category in categories" :key="category">
+              <div class="mb-4">
+                <h3 class="mb-2 text-sm font-semibold uppercase text-base-content/60" x-text="category"></h3>
+                <ul class="pr-0 mr-0 menu menu-compact">
+                  <template x-for="(section, key) in sections" :key="key">
+                    <li x-show="section.category === category" @click="activeSection = key; isAddingResource = false; isEditingResource = false;">
+                      <div class="flex items-center justify-between">
+                        <a :class="{ 'active': activeSection === key }">
+                          <span x-text="section.title"></span>
+                        </a>
+                      </div>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+            </template>
+          </div>
+          <div class="p-4 space-y-2 border-t border-base-300">
+            <button @click="isAddingResource = true; isEditingResource = false;" class="btn btn-sm btn-block btn-primary">
+              + Add Resource
+            </button>
+            <div class="flex space-x-2" x-show="sections[activeSection]?.editable || sections[activeSection]?.deletable">
+              <button x-show="sections[activeSection]?.editable" @click="editResource(activeSection)" class="flex-1 btn btn-sm btn-secondary">
+                Edit
+              </button>
+              <button x-show="sections[activeSection]?.deletable" @click="deleteResource(activeSection)" class="flex-1 btn btn-sm btn-error">
+                Delete
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        <main class="overflow-hidden bg-base-100 rounded-2xl" :class="isCentered ? 'col-span-5' : 'col-span-3'">
+          <div class="relative w-full h-full">
+            <template x-if="isAddingResource || isEditingResource">
+              <div class="absolute inset-0 flex items-center justify-center bg-base-100">
+                <form @submit.prevent="isEditingResource ? updateResource() : addResource()" class="w-full max-w-md p-6 space-y-4 rounded-lg shadow-lg bg-base-200">
+                  <h2 class="text-2xl font-bold text-center" x-text="isEditingResource ? 'Edit Resource' : 'Add New Resource'"></h2>
+                  <div>
+                    <label for="resourceTitle" class="block text-sm font-medium text-base-content">Resource Title</label>
+                    <input type="text" id="resourceTitle" x-model="newResource.title" required class="w-full mt-1 input input-bordered">
+                  </div>
+                  <div>
+                    <label for="resourceUrl" class="block text-sm font-medium text-base-content">Resource URL</label>
+                    <input type="text" id="resourceUrl" x-model="newResource.url" class="w-full mt-1 input input-bordered">
+                  </div>
+                  <div>
+                    <label for="resourceCategory" class="block text-sm font-medium text-base-content">Category</label>
+                    <select id="resourceCategory" x-model="newResource.category" class="w-full mt-1 select select-bordered">
+                      <template x-for="category in categories" :key="category">
+                        <option :value="category" x-text="category"></option>
+                      </template>
+                    </select>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <input type="text" x-model="newCategory" placeholder="New Category" class="w-full input input-bordered input-sm">
+                    <button type="button" @click="addCategory" class="btn btn-sm btn-secondary">Add</button>
+                  </div>
+                  <div class="flex items-center">
+                    <input type="checkbox" id="resourceExternal" x-model="newResource.external" class="checkbox checkbox-primary">
+                    <label for="resourceExternal" class="ml-2 text-sm font-medium text-base-content">External Resource</label>
+                  </div>
+                  <div class="flex justify-between mt-6">
+                    <button type="button" @click="isAddingResource = false; isEditingResource = false;" class="btn btn-ghost">Cancel</button>
+                    <button type="submit" class="btn btn-primary" x-text="isEditingResource ? 'Update' : 'Add'"></button>
+                  </div>
+                </form>
+              </div>
+            </template>
+            
+            <template x-for="(section, key) in sections" :key="key">
+              <div 
+                x-show="!isAddingResource && !isEditingResource && activeSection === key" 
+                class="absolute inset-0 transition-opacity duration-300" 
+                :class="{'opacity-100': activeSection === key, 'opacity-0': activeSection !== key}"
+              >
+                <template x-if="section.url && section.external">
+                  <div class="w-full h-full border mockup-browser border-base-300">
+                    <div class="mockup-browser-toolbar">
+                      <div class="border input border-base-300 opacity-70" x-text="section.url"></div>
+                    </div>
+                    <div class="border-base-300 border-t w-full h-[calc(100%-3rem)]">
+                      <iframe id="no-scrollbar" :src="section.url" class="w-full h-full border-0" :title="section.title"></iframe>
+                    </div>
+                  </div>
+                </template>
+                <template x-if="section.url && !section.external">
+                  <iframe id="no-scrollbar" :src="section.url" class="w-full h-full border-0" :title="section.title"></iframe>
+                </template>
+                <template x-if="key == 'themeManager'">
+                   <div class="w-full h-full overflow-y-auto">
+                    <iframe id="theme-manager" src="/?agnostic=theme" class="w-full h-full border-0"></iframe>
+                  </div>
+                </template>
+                <template x-if="key == 'fontsManager'">
+                   <div class="w-full h-full overflow-y-auto">
+                    <iframe id="components-manager" src="/?agnostic=fonts" class="w-full h-full border-0"></iframe>
+                  </div>
+                </template>
+                <template x-if="key == 'stylebook'">
+                   <div class="w-full h-full overflow-y-auto">
+                    <iframe id="components-manager" src="/?agnostic=stylebook" class="w-full h-full border-0"></iframe>
+                  </div>
+                </template>
+                <template x-if="key == 'components'">
+                  <div class="w-full h-full overflow-y-auto">
+                    <iframe id="components-manager" src="/?agnostic=components" class="w-full h-full border-0"></iframe>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+#no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+#no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+</style>
+<script>
+function TabManager() {
+    return {
+      
+        isCentered: true,
+        isMinimized: true,
+        activeSection: 'themeManager',
+        isAddingResource: false,
+        isEditingResource: false,
+        newResource: { title: '', url: '', category: 'resources', external: false },
+        editingResource: null,
+        categories: ['design', 'resources', 'WordPress'],
+        newCategory: '',
+        sections: {
+            themeManager: { title: 'Theme', url: '', category: 'design', external: false, editable: false, deletable: false },
+            stylebook: { title: 'Stylebook', url: '', category: 'design', external: false, editable: false, deletable: false },
+            fontsManager: { title: 'Fonts', url: '', category: 'design', external: false, editable: false, deletable: false },
+            components: { title: 'Components', url: '', category: 'design', external: false, editable: false, deletable: false },
+            wpComponents: { title: 'Admin', url: '/wp-admin/index.php?agnostic=iframe', category: 'WordPress', external: false, editable: true, deletable: true },
+            daisyUI: { title: 'Daisy UI', url: 'https://daisyui.com/components', category: 'resources', external: true, editable: true, deletable: true },
+            tailwindCheatsheet: { title: 'Tailwind Docs', url: 'https://tailwindcss.com/docs/configuration', category: 'resources', external: true, editable: true, deletable: true },
+            documentation: { title: 'Documentation', url: '', category: 'resources', external: false, editable: true, deletable: true }
+        },
+        init() {
+          window.TabManager = this;
+        },
+        minimize() {
+            this.isMinimized = true;
+        },
+        toggleCentered() {
+            this.isCentered = !this.isCentered;
+        },
+        addResource() {
+            if (this.newResource.title) {
+                const key = this.newResource.title.toLowerCase().replace(/\s+/g, '');
+                this.sections[key] = {
+                    ...this.newResource,
+                    editable: true,
+                    deletable: true
+                };
+                this.newResource = { title: '', url: '', category: 'resources', external: false };
+                this.isAddingResource = false;
+                this.activeSection = key;
+            }
+        },
+        editResource(key) {
+            this.editingResource = key;
+            this.isEditingResource = true;
+            this.newResource = { ...this.sections[key] };
+        },
+        updateResource() {
+            if (this.newResource.title) {
+                this.sections[this.editingResource] = {
+                    ...this.newResource,
+                    editable: true,
+                    deletable: true
+                };
+                this.newResource = { title: '', url: '', category: 'resources', external: false };
+                this.isEditingResource = false;
+                this.editingResource = null;
+            }
+        },
+        deleteResource(key) {
+            if (confirm('Are you sure you want to delete this resource?')) {
+                delete this.sections[key];
+                this.activeSection = Object.keys(this.sections)[0];
+            }
+        },
+        addCategory() {
+            if (this.newCategory && !this.categories.includes(this.newCategory)) {
+                this.categories.push(this.newCategory);
+                this.newResource.category = this.newCategory;
+                this.newCategory = '';
+            }
+        }
+    };
+}
+</script>

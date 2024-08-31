@@ -1,0 +1,185 @@
+<div id="agnostic-loader">{{ include('styles/bg-builder.svg') }}</div>
+<div id="agnostic-loader-logo">{{ include('styles/logo.svg') }}</div>
+
+<style>
+  #agnostic-loader,
+  #agnostic-loader-logo {
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999999999999;
+  }
+  
+  #agnostic-loader {
+    padding: 4rem;
+    background-color: white;
+  }
+  
+  #agnostic-loader-logo svg {
+    width: 45% !important;
+    height: 100%;
+  }
+  
+  #agnostic-loader svg > *,
+  #agnostic-loader-logo path {
+    opacity: 0;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+  
+  #agnostic-loader > svg {
+    width: 100%;
+    transform: scale(1.15);
+  }
+</style>
+
+<script>
+  // Flag to track if the animation has run
+  let animationHasRun = false
+  
+  document.addEventListener('DOMContentLoaded', function () {
+    // Check if animation has already run
+    if (animationHasRun) return
+  
+    const agnosticLoader = document.getElementById('agnostic-loader')
+    const agnosticLoaderLogo = document.getElementById('agnostic-loader-logo')
+    const buildWrap = document.getElementById('_build-wrap')
+  
+    // Initial setup
+    agnosticLoader.style.visibility = 'visible'
+    agnosticLoaderLogo.style.visibility = 'visible'
+    buildWrap.style.opacity = '0'
+    buildWrap.style.visibility = 'hidden'
+  
+    const mainTimeline = anime.timeline({
+      easing: 'easeOutQuad'
+    })
+  
+    mainTimeline
+      .add({
+        targets: [agnosticLoader, agnosticLoaderLogo],
+        opacity: [0, 1],
+        duration: 500,
+        easing: 'easeInOutQuad'
+      })
+      .add({
+        targets: '#agnostic-loader-logo path',
+        strokeDashoffset: [anime.setDashoffset, 0],
+        easing: 'easeInOutSine',
+        duration: 1500,
+        delay: anime.stagger(150),
+        opacity: [0, 1]
+      })
+      .add(
+        {
+          targets: '#agnostic-loader-logo path',
+          fill: ['rgba(0,0,0,0)', '#000'],
+          stroke: ['#000', 'rgba(0,0,0,0)'],
+          duration: 500,
+          easing: 'easeInOutQuad'
+        },
+        '-=200'
+      )
+      .add(
+        {
+          targets: '#agnostic-loader-logo',
+          scale: [1, 1.05],
+          duration: 1000,
+          easing: 'easeInOutElastic(1, .5)'
+        },
+        '-=500'
+      )
+  
+    // Start the breathing effect after the main animation
+    const secondTimeline = anime.timeline({
+      easing: 'easeInOutQuad',
+      loop: true
+    })
+  
+    secondTimeline
+      .add(
+        {
+          targets: '#agnostic-loader svg *',
+          opacity: [0, 1],
+          strokeDashoffset: [anime.setDashoffset, 0],
+          easing: 'easeInOutSine',
+          duration: 1000,
+          delay: anime.stagger(10)
+        },
+        '-=500'
+      )
+      .add({
+        targets: '#agnostic-loader svg *',
+        opacity: [1, 0.7, 1],
+        // scale: [1, 1.05, 1],
+        duration: 1000,
+        delay: anime.stagger(30, { start: 0 }),
+        loop: true,
+        direction: 'alternate',
+        easing: 'easeInOutQuad'
+      })
+  
+    // Call CompleteLoader after a delay
+    // setTimeout(CompleteLoader, 3000); // 5 seconds delay, adjust as needed
+  
+    // Set the flag to indicate the animation has run
+    animationHasRun = true
+  })
+  
+  function CompleteLoader() {
+    // Check if animation has already completed
+    if (!animationHasRun) return
+    const agnosticLoader = document.getElementById('agnostic-loader')
+    const agnosticLoaderLogo = document.getElementById('agnostic-loader-logo')
+    const buildWrap = document.getElementById('_build-wrap')
+    Alpine.store('editors').getJavaScript()
+    // Stop any ongoing animations
+    anime.remove([agnosticLoader, agnosticLoaderLogo, buildWrap])
+  
+    // Ensure buildWrap is ready but hidden
+    buildWrap.style.opacity = '0'
+    buildWrap.style.visibility = 'visible'
+  
+    anime
+      .timeline({
+        easing: 'easeInOutQuad'
+      })
+      .add({
+        targets: [agnosticLoader, agnosticLoaderLogo],
+        opacity: [1, 0],
+        duration: 500,
+        complete: function (anim) {
+          agnosticLoader.style.visibility = 'hidden'
+          agnosticLoaderLogo.style.visibility = 'hidden'
+        }
+      })
+      .add(
+        {
+          targets: buildWrap,
+          opacity: [0, 1],
+          duration: 500,
+          begin: function (anim) {
+            buildWrap.style.removeProperty('visibility')
+          },
+          complete: function (anim) {
+            buildWrap.style.removeProperty('opacity')
+            // Reset the flag after animation completes
+            Alpine.store('editors').timberRender()
+            window.AgnosticEditorStore.setEditorDefaultValues()
+            window.AgnosticTree.unfoldAll()
+            refreshTailwind()
+  
+            animationHasRun = false
+          }
+        },
+        '-=300'
+      ) // Start fading in buildWrap before loader is fully faded out
+  }
+</script>

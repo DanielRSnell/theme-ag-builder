@@ -1,0 +1,600 @@
+<script id="editor-store">
+  document.addEventListener("alpine:init", () => {
+    Alpine.store("editors", {
+      selectedElementTag: "",
+      innerHTML: "",
+      outerHTML: "",
+      classManager: [],
+      attributes: "",
+      phpEditor: "",
+      global_javascript: "",
+      global_css: "",
+      tw_config: "",
+      tw_css: "",
+      context: "",
+      language: "html",
+      debug: "",
+      template_id: Alpine.store("builder").template_id,
+      template_name: "{{ post.title }}",
+      template_render_link: "{{ post.link }}?agnostic=preview",
+      nonce: "{{ function('wp_create_nonce', 'wp_rest') }}",
+      ajaxurl: "/wp-admin/admin-ajax.php",
+      settings: {},
+      debounceTimer: 100,
+      configs: defaultEditorConfigs(),
+      activeTheme: "vs-dark",
+      themes: ["vs", "vs-dark", "hc-black", "daisyDark", "hc-light"],
+      editorsInitialized: false,
+      pendingChanges: false,
+      renderQueue: [],
+      debounceQueueTimer: null,
+      init() {
+        this.debouncedTimberRender = this.debounce(
+          this.timberRender.bind(this),
+          100
+        );
+
+        this.debouncedResetHighlighterPositions = this.debounce(() => {
+          console.log("Resetting Highlighter Positions");
+          window.resetHighlighterPositions();
+          window.refreshTailwind();
+        }, 100);
+
+        this.getJavaScript();
+      },
+      getJavaScript() {
+        fetch("/wp-json/agnostic/v1/javascript", {
+          method: "GET",
+          headers: {
+            "X-WP-Nonce": this.nonce,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            window.global_javascriptEditor.setValue(data.content);
+          })
+          .catch((error) => {
+            console.error("Error fetching JavaScript:", error);
+          });
+      },
+
+      updateJavaScript() {
+        fetch("/wp-json/agnostic/v1/javascript", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-WP-Nonce": this.nonce,
+          },
+          body: JSON.stringify({
+            content: window.global_javascriptEditor.getValue(),
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("JavaScript updated successfully:", data.message);
+          })
+          .catch((error) => {
+            console.error("Error updating JavaScript:", error);
+          });
+      },
+
+      debounceJavascriptUpdate() {
+        clearTimeout(this.javascriptUpdateTimer);
+        this.javascriptUpdateTimer = setTimeout(() => {
+          this.updateJavaScript();
+        }, 500); // 500ms debounce time
+      },
+      debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      },
+      resetPrimaryEditors() {
+        // Reset Monaco for Class Manager, Attributes, InnerHTML, OuterHTML (when there is no active selector)
+        window.innerHTMLEditor.setValue("");
+        window.attributesEditor.setValue("");
+        window.classManagerEditor.setValue("");
+        window.outerHTMLEditor.setValue("");
+      },
+
+      getPreviewDom() {
+        return document.getElementById("agnostic-preview-window")
+          .contentDocument;
+      },
+
+      getFrameDocument() {
+        const frame = document.getElementById("agnostic-preview-window");
+        return frame.contentDocument;
+      },
+
+      getCurrentContent() {
+        const frame = document.getElementById("agnostic-preview-window");
+        const content =
+          frame.contentDocument.querySelector("#agnostic-content");
+        return content ? content : this.getCurrentRawContent();
+      },
+
+      getCurrentRawContent() {
+        const content =
+          Alpine.store("preview").doc.querySelector("#agnostic-content");
+        return content;
+      },
+
+      async elementSelected(element, isSelected, isMultiselect) {
+        let activeSelectors = await Alpine.store("preview").activeSelectors;
+        const selector = `#${element.id}`;
+        if (isSelected) {
+          if (isMultiselect) {
+            if (!activeSelectors.includes(selector)) {
+              activeSelectors = [...activeSelectors, selector];
+            }
+          } else {
+            activeSelectors = [selector];
+          }
+        } else {
+          activeSelectors = activeSelectors.filter((s) => s !== selector);
+          // If there are no active selectors, reset the primary editors
+          if (activeSelectors.length === 0) {
+            this.resetPrimaryEditors();
+          }
+        }
+        Alpine.store("preview").activeSelectors = activeSelectors;
+        await window.AgnosticPreviewStore.setActiveElements();
+        await window.resetHighlighterPositions();
+      },
+
+      onSystemEditorChange(editor, value) {
+        this[editor] = value;
+      },
+
+      onEditorChange(editor, value) {
+        this[editor] = value;
+        this.pendingChanges = true;
+        this.debouncedSyncEditors(editor);
+      },
+
+      debouncedSyncEditors: function (editor) {
+        this.debounce(() => {
+          this.syncEditors(editor);
+        }, 300)();
+      },
+
+      getEditorConfig(editor) {
+        return {
+          ...this.configs.defaultOptions,
+          ...this.configs[editor],
+          theme: this.activeTheme,
+        };
+      },
+
+      setEditorValue(editorType, value, triggerOnChange = true) {
+        const editor = window[`${editorType}Editor`];
+        if (editor) {
+          if (triggerOnChange) {
+            editor.setValue(value);
+          }
+          this[editorType] = value;
+        }
+      },
+      unformatClasses(formattedClasses) {
+        // Split the formatted classes into an array, removing empty lines
+        const classArray = formattedClasses
+          .split("\n")
+          .filter((line) => line.trim() !== "");
+
+        // Join all classes with a single space
+        const unformattedClasses = classArray.join(" ");
+
+        // Trim any extra whitespace at the beginning or end
+        return unformattedClasses.trim();
+      },
+      syncEditors(changedEditor) {
+        const activeSelectors = window.AgnosticPreviewStore.activeSelectors;
+
+        const activeSelector = activeSelectors[0];
+        const doc = window.AgnosticPreviewStore.doc;
+
+        if (activeSelectors.length > 1) {
+          // Multiselect hook here
+          return;
+        }
+        console.log("ACTIVE EDITOR", changedEditor);
+        switch (changedEditor) {
+          case "classManager":
+            if (activeSelectors.length === 0) {
+              return;
+            }
+            const unformatClasses = this.unformatClasses(this.classManager);
+            doc.querySelector(activeSelector).className = unformatClasses;
+            break;
+          case "attributes":
+            if (activeSelectors.length === 0) {
+              return;
+            }
+            const activeElement = doc.querySelector(activeSelector);
+            if (!activeElement) {
+              break;
+            }
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = this.attributes.trim();
+            const newOpeningTag =
+              tempDiv.firstChild.outerHTML.split(">")[0] + ">";
+            const newOuterHTML =
+              newOpeningTag +
+              activeElement.innerHTML +
+              "</" +
+              tempDiv.firstChild.tagName.toLowerCase() +
+              ">";
+            activeElement.outerHTML = newOuterHTML;
+            break;
+          case "innerHTML":
+            if (activeSelectors.length === 0) {
+              // When nothing is selected just append to #agnostic-content
+              doc.querySelector("#agnostic-content").innerHTML +=
+                this.innerHTML;
+              this.resetPrimaryEditors();
+              // this.debouncedLiveRender();
+              break;
+            } else {
+              doc.querySelector(activeSelector).innerHTML = this.innerHTML;
+            }
+            break;
+          case "outerHTML":
+            if (activeSelectors.length === 0) {
+              // When nothing is selected just append to #agnostic-content
+              doc.querySelector("#agnostic-content").innerHTML +=
+                this.outerHTML;
+              this.resetPrimaryEditors();
+              // this.debouncedLiveRender();
+              break;
+            } else {
+              doc.querySelector(activeSelector).innerHTML = this.outerHTML;
+            }
+            break;
+          case "global_javascript":
+            var js = window.global_javascriptEditor.getValue();
+            this.global_javascript = js;
+            this.debounceJavascriptUpdate();
+            break;
+          case "global_css":
+            var css = window.global_cssEditor.getValue();
+            if (css !== this.global_css) {
+              this.global_css = css;
+              this.tw_css = css;
+              window.cssEditor.setValue(css);
+              window.AgnosticState.debouncedUpdateTailwindCSS();
+            }
+            break;
+
+          case "config":
+            console.log("CONFIG EDITOR CHANGE");
+            const config = window.configEditor.getValue();
+            this.tw_config = config;
+            window.AgnosticState.debouncedUpdateTailwindConfig();
+            break;
+          case "css":
+            var css = window.cssEditor.getValue();
+            if (css !== this.tw_css) {
+              this.tw_css = css;
+              this.global_css = css;
+              window.global_cssEditor.setValue(css);
+
+              window.AgnosticState.debouncedUpdateTailwindCSS();
+            }
+            break;
+        }
+
+        if (changedEditor !== "config" && changedEditor !== "css") {
+          // Get Agnostic Content from the doc
+          const agnosticContent = doc.querySelector("#agnostic-content");
+
+          // Update the HTML with unique identifiers to the innerHTML
+          const updatedHTML = GenerateSelectorIdentifiers(
+            agnosticContent.innerHTML
+          );
+
+          // Update #agnostic-content.innerHTML with the updatedHTML
+          agnosticContent.innerHTML = updatedHTML;
+
+          // if there is a activeSelector, sync the editors
+          if (activeSelectors.length > 0) {
+            const activeEl = doc.querySelector(activeSelector);
+            this.onSystemEditorUpdate(activeEl, changedEditor, doc);
+          }
+
+          // this.debouncedTimberRender();
+          this.syncLiveChangesBeforeRender(doc);
+        }
+      },
+      async syncLiveChangesBeforeRender(doc) {
+        // remove highlights 
+        window.removeHighlights();
+        // Get Active Selectors
+        const activeSelectors = window.AgnosticPreviewStore.activeSelectors;
+
+        // Get each of the elements from the activeSelectors using the doc
+        const activeElements = activeSelectors.map((selector) =>
+          doc.querySelector(selector)
+        );
+
+        // Now update the iframe preview with the updates
+        const frame = document.getElementById("agnostic-preview-window");
+        const previewDoc = frame.contentDocument;
+
+        // Loop through active elements, find them in frame and replace
+        await activeElements.forEach((element) => {
+          const selector = `#${element.id}`;
+          const previewElement = previewDoc.querySelector(selector);
+          if (previewElement) {
+            previewElement.outerHTML = element.outerHTML;
+          }
+        });
+
+        this.debounceQueueRender();
+      },
+      debounceQueueRender() {
+          // Clear any existing timer
+          if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+          }
+
+          // Remove the last queued render if it exists
+          if (this.renderQueue.length > 0) {
+            this.renderQueue.pop();
+          }
+
+          // Queue a new render
+          const renderPromise = new Promise((resolve) => {
+            this.debounceTimer = setTimeout(() => {
+              this.timberRender();
+              resolve();
+            }, 1000);
+          });
+
+          this.renderQueue.push(renderPromise);
+
+          // Process the queue
+          this.processRenderQueue();
+      },
+      async processRenderQueue() {
+      if (this.renderQueue.length > 0) {
+            // Wait for the last render in the queue to complete
+            await this.renderQueue[this.renderQueue.length - 1];
+
+            // Clear the queue
+            this.renderQueue = [];
+          }
+      },
+      onSystemEditorUpdate(element, changedEditor, doc) {
+        // Sync Monaco Editors with the updated element
+        if (element) {
+          if (changedEditor !== "classManager") {
+            window.AgnosticPreviewStore.createParentClasses(element);
+          }
+          if (changedEditor !== "attributes") {
+            window.AgnosticPreviewStore.createParentWrapper(element);
+          }
+          const innerHtml = element.innerHTML;
+          const outerHTML = element.outerHTML;
+          if (changedEditor !== "innerHTML") {
+            window.innerHTMLEditor.setValue(prettyTwig(innerHtml));
+          }
+          if (changedEditor !== "outerHTML") {
+            window.outerHTMLEditor.setValue(prettyTwig(outerHTML));
+          }
+        }
+      },
+
+      debouncedLiveRender: function () {
+        this.debounce(() => {
+          this.liveRender();
+        }, 300)();
+      },
+
+      liveRender() {
+        const current = this.getCurrentContent();
+        const updated = this.getCurrentRawContent();
+        if (this.pendingChanges) {
+          window.removeHighlights();
+          // this.swapContent(current, updated);
+          this.debouncedTimberRender();
+          this.pendingChanges = false;
+        }
+      },
+
+      swapContent(old, updated, config = {}) {
+        if (old && updated) {
+          if (document.startViewTransition) {
+            document.startViewTransition(() => {
+              this.performMorph(old, updated, config);
+            });
+          } else {
+            // Fallback for browsers that don't support View Transitions
+            requestAnimationFrame(() => {
+              this.performMorph(old, updated, config);
+            });
+          }
+        }
+      },
+
+      performMorph(old, updated, config) {
+        Alpine.morph(old, updated, {
+          updating: (el, toEl, childrenOnly, skip) => {
+            if (config.updating) config.updating(el, toEl, childrenOnly, skip);
+          },
+          updated: (el, toEl) => {
+            if (config.updated) config.updated(el, toEl);
+          },
+          removing: (el, skip) => {
+            if (config.removing) config.removing(el, skip);
+          },
+          removed: (el) => {
+            if (config.removed) config.removed(el);
+          },
+          adding: (el, skip) => {
+            if (config.adding) config.adding(el, skip);
+          },
+          added: (el) => {
+            if (config.added) config.added(el);
+          },
+          key: (el) => (config.key ? config.key(el) : el.id),
+          lookahead: config.lookahead ?? false,
+        });
+
+        this.debouncedResetHighlighterPositions();
+        this.postSwapActions();
+      },
+
+      postSwapActions() {
+        requestIdleCallback(() => {
+          window.AgnosticTree.generateTreeHTML();
+          window.contextEditor.setValue(this.context);
+          if (window.PreviewState) {
+            window.PreviewState.onUpdateHighlights();
+            window.refreshTailwind();
+          }
+        });
+      },
+
+      timberRender() {
+        console.log("SWAP: Timber Render triggered");
+        const current = this.getCurrentContent(); // This is the current content in the preview
+        const html = this.getCurrentRawContent().innerHTML; // This is the raw content from the editor
+        const settings = this.settings;
+        const postId = this.template_id;
+        const restUrl = "/wp-json/agnostic/v1/render"; // Update this if your WordPress installation uses a different REST API base
+        const nonce = this.nonce;
+
+        const data = {
+          post_id: postId,
+          populate: {
+            view_is: Alpine.store("builder").populate.view_is,
+            view_target: Alpine.store("builder").populate.view_target,
+            view_type: Alpine.store("builder").populate.view_type,
+            if_single: Alpine.store("builder").populate.if_single,
+          },
+          html: html,
+          php: this.phpEditor,
+          js: this.global_javascript,
+          settings: JSON.stringify(settings),
+        };
+
+        console.log("SWAP: Timber Render Data", data);
+
+        fetch(restUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "X-WP-Nonce": nonce,
+          },
+          body: JSON.stringify(data),
+        })
+          .then((response) => response.json())
+          .then((result) => {
+            console.log("SWAP: Timber Content Processed");
+            if (result.state) {
+              Alpine.store("builder").state = result.state;
+            }
+
+            if (result.html) {
+              const copyElement = current.cloneNode(false);
+              copyElement.innerHTML = result.html;
+
+              this.swapContent(current, copyElement, {}, false, true);
+            } else {
+              console.error("SWAP: Timber Content Processing Failed", result);
+            }
+          })
+          .catch((error) => {
+            console.error("SWAP: Timber Content Processing Failed", error);
+          });
+      },
+
+      setTailwindConfig(config) {
+        this.tw_config = config;
+        if (window.configEditor) {
+          window.configEditor.setValue(config);
+        }
+      },
+
+      setTailwindCSS(css) {
+        this.tw_css = css;
+        if (window.cssEditor) {
+          // if they aren't the same, update the css editor
+          if (css !== window.global_css.getValue()) {
+            window.global_cssEditor.setValue(css);
+          }
+
+          if (css !== window.cssEditor.getValue()) {
+            window.cssEditor.setValue(css);
+          }
+        }
+      },
+
+      setTheme(theme) {
+        this.activeTheme = theme;
+        this.updateAllEditors();
+      },
+
+      updateAllEditors() {
+        if (typeof window.updateMonacoEditorsTheme === "function") {
+          window.updateMonacoEditorsTheme(this.activeTheme);
+        }
+      },
+
+      initializeEditor(editorType, monacoInstance) {
+        window[`${editorType}Editor`] = monacoInstance;
+        if (
+          Object.keys(this.configs).length - 1 ===
+          Object.keys(window).filter((key) => key.endsWith("Editor")).length
+        ) {
+          this.editorsInitialized = true;
+          this.setEditorDefaultValues();
+        }
+      },
+
+      setEditorDefaultValues() {
+        window.configEditor.setValue(this.tw_config);
+        window.cssEditor.setValue(this.tw_css);
+        window.global_cssEditor.setValue(this.tw_css);
+      },
+    });
+
+    window.AgnosticEditorStore = Alpine.store("editors");
+    // Create getter functions for CSS and config
+    window.themeManager = window.themeManager || {};
+
+    window.themeManager.getCSS = function () {
+      return Alpine.store("editors").tw_css;
+    };
+
+    window.themeManager.getConfig = function () {
+      return Alpine.store("editors").tw_config;
+    };
+
+    // If you need to maintain the original property-like access, you can use getters
+    Object.defineProperty(window.themeManager, "css", {
+      get: function () {
+        return window.cssEditor.getValue();
+      },
+    });
+
+    Object.defineProperty(window.themeManager, "config", {
+      get: function () {
+        return window.configEditor.getValue();
+      },
+    });
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const editorStore = Alpine.store("editors");
+    editorStore.init();
+  });
+</script>

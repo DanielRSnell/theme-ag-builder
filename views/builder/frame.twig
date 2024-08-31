@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <head x-ref="head">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+      {# {% do action('get_header') %}
+    {{ function('wp_head') }} #}
+
+      {# <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/morph@3.x.x/dist/cdn.min.js"></script> #}
+      <script src="https://cdn.jsdelivr.net/npm/chroma-js@2.4.2/chroma.min.js"></script>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+      <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.x.x/dist/cdn.min.js"></script>
+      <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+      {{ include('builder/render/tw/components-render.html') }}
+    </head>
+  </head>
+  <body>
+    {% block frameContent %}
+
+    {% endblock %}
+  </body>
+</html>

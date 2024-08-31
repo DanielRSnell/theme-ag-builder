@@ -1,0 +1,213 @@
+<style>
+  :root {
+    --placeholder-filter: invert(0.8) sepia(1) saturate(0.2) hue-rotate(180deg) contrast(1.25) brightness(1.2);
+    --ag-bg-dark: #1d232a;
+    --ag-bg-medium: #2a323c;
+    --ag-primary: #570df8;
+    --ag-text-light: #a6adba;
+  }
+
+  .filter-svg {
+    filter: var(--placeholder-filter);
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    overflow: auto;
+  }
+
+  #agnostic-settings {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+  }
+
+  #wpcontent, #wpfooter {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  #adminmenumain {
+    display: none !important;
+  }
+
+  #agnostic-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  html.wp-toolbar {
+    padding-top: 0 !important;
+  }
+
+  #wpadminbar, #wpfooter {
+    display: none !important;
+  }
+</style>
+
+<link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+{{ include('admin/global/head.twig') }}
+
+<script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
+<script src="https://unpkg.com/@shopify/prettier-plugin-liquid/standalone.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-html.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-postcss.js"></script>
+<script src="https://unpkg.com/@prettier/plugin-php@0.19.6/standalone.js"></script>
+
+<script>
+  function prettyTwig(code) {
+    const formattedContent = prettier.format(code, {
+      parser: "liquid-html",
+      plugins: [prettierPluginLiquid],
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+      singleQuote: false,
+      htmlWhitespaceSensitivity: "css",
+      singleAttributePerLine: true,
+      bracketSameLine: false,
+      bracketSpacing: true,
+    });
+
+    return formattedContent;
+  }
+
+  function prettyPHP(code) {
+    const formattedContent = prettier.format(code, {
+      parser: "php",
+      plugins: [prettierPlugins.php],
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+      singleQuote: false,
+      htmlWhitespaceSensitivity: "css",
+    });
+
+    return formattedContent;
+  }
+
+  function prettyHTML(code) {
+    const formattedContent = prettier.format(code, {
+      parser: "html",
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+      singleQuote: false,
+      htmlWhitespaceSensitivity: "css",
+    });
+
+    return formattedContent;
+  }
+
+  function prettyCSS(code) {
+    return prettier.format(code, {
+      parser: "css",
+      plugins: prettierPlugins,
+    });
+  }
+
+  function prettyJavaScript(code) {
+    const formattedContent = prettier.format(code, {
+      parser: "babel",
+      plugins: [prettierPlugins.babel],
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+      singleQuote: false,
+      htmlWhitespaceSensitivity: "css",
+    });
+
+    return formattedContent;
+  }
+
+  window.prettierPlugins = prettierPLugins;
+</script>
+
+<div id="agnostic-settings" x-data="agnosticSettings()" x-init="init()" class="flex h-screen bg-base-300">
+  <div class="flex flex-col w-full max-w-xs bg-base-200 rounded-r-3xl">
+    <div class="flex items-center justify-center w-full pt-4">
+     <div class="inline-grid text-2xl font-bold text-center">
+        <span
+          class="pointer-events-none col-start-1 row-start-1 bg-[linear-gradient(90deg,theme(colors.error)_0%,theme(colors.secondary)_9%,theme(colors.secondary)_42%,theme(colors.primary)_47%,theme(colors.accent)_100%)] bg-clip-text blur-xl [-webkit-text-fill-color:transparent] [transform:translate3d(0,0,0)] before:content-[attr(data-text)] [@supports(color:oklch(0%_0_0))]:bg-[linear-gradient(90deg,oklch(var(--s))_4%,color-mix(in_oklch,oklch(var(--s)),oklch(var(--er)))_22%,oklch(var(--p))_45%,color-mix(in_oklch,oklch(var(--p)),oklch(var(--a)))_67%,oklch(var(--a))_100.2%)]"
+          aria-hidden="true"
+          data-text="component library"
+        ></span>
+        <span
+          class="[&::selection]:text-base-content relative col-start-1 row-start-1 bg-[linear-gradient(90deg,theme(colors.error)_0%,theme(colors.secondary)_9%,theme(colors.secondary)_42%,theme(colors.primary)_47%,theme(colors.accent)_100%)] bg-clip-text [-webkit-text-fill-color:transparent] [&::selection]:bg-blue-700/20 [@supports(color:oklch(0%_0_0))]:bg-[linear-gradient(90deg,oklch(var(--s))_4%,color-mix(in_oklch,oklch(var(--s)),oklch(var(--er)))_22%,oklch(var(--p))_45%,color-mix(in_oklch,oklch(var(--p)),oklch(var(--a)))_67%,oklch(var(--a))_100.2%)]"
+        >
+          {{ '{{ AGNOSTIC }}'|e('html') }}
+        </span>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <ul class="flex-grow w-full p-4 menu bg-base-200 text-base-content">
+      <template x-for="item in menuItems" :key="item.id">
+        <li>
+          <a 
+            :href="item.href" 
+            :class="{ 'active': activeMenuItem === item.id }"
+            @click.prevent="setActiveMenuItem(item.id)"
+            x-text="item.label"
+          ></a>
+        </li>
+      </template>
+    </ul>
+    <div class="p-4">
+      <a href="/wp-admin/" class="btn btn-outline btn-block">Back to WordPress</a>
+    </div>
+  </div>
+
+  <div class="flex-grow p-8 overflow-y-auto bg-base-300">
+    <div class="h-full p-8 bg-base-100 rounded-3xl">
+      {{ include('admin/pages/_dashboard.html') }}
+      {{ include('admin/pages/_views.html') }}
+      {{ include('admin/pages/_create-view.html') }}
+      {{ include('admin/pages/_router.html') }}
+      {{ include('admin/pages/_themeing.html') }}
+    </div>
+  </div>
+</div>
+
+<script>
+function agnosticSettings() {
+  return {
+    publishedViews: [],
+    draftViews: [],
+    menuItems: [
+      { id: 'dashboard', label: 'Dashboard', href: '#' },
+      { id: 'views', label: 'Views', href: '#' },
+      { id: 'theme', label: 'Theme', href: '#' },
+      { id: 'router', label: 'Router', href: '#' }
+    ],
+    activeMenuItem: 'dashboard',
+    get activeMenuItemLabel() {
+      const activeItem = this.menuItems.find(item => item.id === this.activeMenuItem);
+      return activeItem ? activeItem.label : '';
+    },
+    setActiveMenuItem(id) {
+      this.activeMenuItem = id;
+    },
+    backToWordPress() {
+      console.log('Navigating back to WordPress');
+    },
+    async init() {
+      window.refreshTailwind();
+    }
+  }
+}
+</script>

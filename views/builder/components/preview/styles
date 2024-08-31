@@ -1,0 +1,63 @@
+<style>
+  html > body > #previewiframe-wrap {
+    display: none !important;
+  }
+  
+  #agnostic-screen,
+  #agnostic-preview-container,
+  #agnostic-preview-handler {
+    transition: all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  
+  #agnostic-preview-container {
+    -webkit-overflow-scrolling: touch; /* for smooth scrolling on iOS devices */
+  }
+  
+  #agnostic-preview-handler {
+    will-change: transform, width, height;
+  }
+  
+  #agnostic-preview-window {
+    transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+    will-change: transform;
+  }
+  
+  .btn {
+    transition: all 0.3s ease;
+  }
+  
+  .btn:active {
+    transform: scale(0.95);
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.95);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+  
+  #agnostic-response .btn {
+    animation: fadeIn 0.3s ease, scaleIn 0.3s ease;
+  }
+  
+  #agnostic-response .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  #agnostic-response .btn-primary {
+    animation: fadeIn 0.3s ease;
+  }
+</style>

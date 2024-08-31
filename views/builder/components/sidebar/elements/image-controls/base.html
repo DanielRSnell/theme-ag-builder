@@ -1,0 +1,128 @@
+<div
+      x-show="elementGroup === 'Image'"
+      class="space-y-4"
+    >
+      <button
+        @click="openMediaSelector()"
+        class="w-full btn btn-secondary btn-sm"
+      >
+        <span
+          x-text="selectedImage.url ? 'Change Image' : 'Select Image'"
+        ></span>
+      </button>
+      <div
+        x-show="selectedImage.url"
+        class="relative"
+      >
+        <img
+          :src="selectedImage.url"
+          :alt="selectedImage.alt"
+          class="w-full rounded"
+        />
+        <span
+          class="absolute px-2 py-1 text-xs text-white bg-black bg-opacity-50 rounded bottom-2 left-2"
+          >ID: <span x-text="selectedImage.id"></span
+        ></span>
+        <button
+          @click="removeImage()"
+          class="absolute top-2 right-2 btn btn-circle btn-xs btn-error"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+      <div
+        x-show="selectedImage.url"
+        class="space-y-2"
+      >
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Aspect ratio</span>
+          </label>
+          <select
+            x-model="imageSettings.aspectRatio"
+            @change="updateImageClass()"
+            class="w-full select select-bordered select-sm"
+          >
+            <option value="">Select aspect ratio</option>
+            <option value="aspect-auto">Auto</option>
+            <option value="aspect-square">Square (1:1)</option>
+            <option value="aspect-video">Video (16:9)</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input
+            x-show="imageSettings.aspectRatio === 'custom'"
+            x-model="imageSettings.customAspectRatio"
+            @input="updateImageClass()"
+            type="text"
+            placeholder="Enter custom aspect ratio (e.g., 4/3)"
+            class="w-full mt-2 input input-bordered input-sm"
+          />
+        </div>
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Object position</span>
+          </label>
+          <select
+            x-model="imageSettings.objectPosition"
+            @change="updateImageClass()"
+            class="w-full select select-bordered select-sm"
+          >
+            <option value="">Select object position</option>
+            <option value="object-center">Center</option>
+            <option value="object-top">Top</option>
+            <option value="object-bottom">Bottom</option>
+            <option value="object-left">Left</option>
+            <option value="object-right">Right</option>
+          </select>
+        </div>
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Custom alt text</span>
+          </label>
+          <input
+            type="text"
+            x-model="selectedImage.alt"
+            @input="updateImageAlt()"
+            class="w-full input input-bordered input-sm"
+          />
+        </div>
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Loading</span>
+          </label>
+          <select
+            x-model="imageSettings.loading"
+            @change="updateImageLoading()"
+            class="w-full select select-bordered select-sm"
+          >
+            <option value="">Select loading type</option>
+            <option value="lazy">Lazy</option>
+            <option value="eager">Eager</option>
+          </select>
+        </div>
+        <div class="form-control">
+          <label class="cursor-pointer label">
+            <span class="label-text">Stretch</span>
+            <input
+              type="checkbox"
+              x-model="imageSettings.stretch"
+              @change="updateImageClass()"
+              class="checkbox checkbox-sm"
+            />
+          </label>
+        </div>
+      </div>
+    </div>

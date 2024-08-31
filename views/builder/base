@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html
+  style="margin-top: 0px !important"
+  x-data="AgnosticManager()"
+  x-init="init"
+>
+  <head>
+    {% do agnostic_header %}
+    {{
+      include("builder/head")
+    }}
+  </head>
+  <body
+    class="overflow-hidden bg-neutral text-base-content"
+    x-cloak
+  >
+    {# {{ include("@components/loader") }} #}
+
+    <div
+      x-cloak
+      id="_build-wrap"
+    >
+       {# Left Sidebar | CRUD #}
+      {{ include("@components/sidebar/base") }}
+      
+      {{ include("@components/command-palette/base.html") }}
+
+      {{ include("@components/topbar/base") }}
+         {# Main Preview #}
+      {{ include("@components/preview/base") }}
+
+      {# Right Sidebar | Tree #}
+      {{ include("@components/tree/context") }} 
+      {{ include("@components/tree/base") }}
+
+
+      {#
+      <div
+        id="media-modal"
+        class="hidden modal"
+      >
+        <iframe
+          id="media-iframe"
+          frameborder="0"
+          scrolling="auto"
+          marginwidth="0"
+          marginheight="0"
+        ></iframe>
+      </div>
+
+      <iframe
+        id="agnostic-tailwind-compiler"
+        src="/agnostic/autocomplete"
+        class="hidden"
+      ></iframe>
+      #}
+
+      <style>
+        :root {
+          --maintoolbar-height: 45px;
+        }
+
+        html {
+          --scale-factor: 0.6371527777777778;
+        }
+
+        html {
+          margin-top: 0px !important;
+        }
+
+        .modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 100;
+          visibility: hidden;
+          z-index: 999999999999999;
+        }
+
+        .modal.visible {
+          visibility: visible;
+        }
+
+        #media-iframe {
+          width: 80%;
+          height: 80%;
+          border: none;
+          border-radius: 1rem;
+          overflow: hidden;
+        }
+
+        #close-modal {
+          padding: 10px 20px;
+          background-color: #ccc;
+          border: none;
+          cursor: pointer;
+        }
+
+        #wpadminbar {
+          display: none !important;
+        }
+      </style>
+
+      <script>
+        const openMediaButton = document.querySelector(".open-media-modal");
+        const mediaModal = document.getElementById("media-modal");
+        const mediaIframe = document.getElementById("media-iframe");
+
+        openMediaButton.addEventListener("click", () => {
+          const currentDomain = window.location.origin;
+          const mediaUrl = `${currentDomain}/wp-admin/media.php?page=lc-media-selector`;
+          mediaIframe.src = mediaUrl;
+          mediaModal.classList.add("visible");
+
+          mediaIframe.addEventListener("load", () => {
+            try {
+              const iframeDocument =
+                mediaIframe.contentDocument ||
+                mediaIframe.contentWindow.document;
+              const mediaToolbar = iframeDocument.querySelector(
+                ".media-frame-toolbar"
+              );
+              const closeButton =
+                iframeDocument.querySelector(".media-modal-close");
+
+              if (mediaToolbar) {
+                mediaToolbar.style.display = "none";
+              }
+
+              if (closeButton) {
+                closeButton.style.display = "none";
+              }
+
+              console.log("Applied styles to iframe elements");
+            } catch (error) {
+              console.error(
+                "Failed to apply styles to iframe elements:",
+                error
+              );
+            }
+          });
+        });
+
+        mediaModal.addEventListener("click", (event) => {
+          if (event.target === mediaModal) {
+            closeModal();
+          }
+        });
+
+        mediaIframe.addEventListener("click", (event) => {
+          event.stopPropagation();
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            closeModal();
+          }
+        });
+
+        function closeModal() {
+          mediaModal.classList.remove("visible");
+          mediaIframe.src = "";
+        }
+      </script>
+
+      <script>
+        window.addEventListener("message", (event) => {
+          if (event.data.type === "activeElementsChanged") {
+            const elements = event.data.activeElements;
+            console.log("Active elements changed:", elements);
+            window.AgnosticPreviewStore.setActiveElements(elements);
+          }
+
+          if (event.data.type === "hoveredElementChanged") {
+            const element = event.data.selector;
+            window.AgnosticTree.onHighlightHoverTreeElement(element);
+          }
+        });
+      </script>
+
+      <script>
+        window.generateSelector = function (el) {
+          var names = [];
+          console.log(el, "Generating Selector");
+
+          while (el.parentNode) {
+            if (el.nodeName == "MAIN" && el.id == "agnostic-content") {
+              names.unshift(el.nodeName + "#" + el.id);
+              break;
+            } else {
+              if (
+                el === el.ownerDocument.documentElement ||
+                el === el.ownerDocument.body
+              ) {
+                names.unshift(el.tagName);
+              } else {
+                for (
+                  var c = 1, e = el;
+                  e.previousElementSibling;
+                  e = e.previousElementSibling, c++
+                ) {}
+                names.unshift(el.tagName + ":nth-child(" + c + ")");
+              }
+              el = el.parentNode;
+            }
+          }
+          return names.join(" > ");
+        };
+      </script>
+
+      <script id="ag-auth-check">
+        function setupAuthCheck() {
+          const checkAuth = async () => {
+            try {
+              const nonce = Alpine.store("builder").nonce;
+              if (!nonce) {
+                console.error("Nonce is not available in Alpine store");
+                return;
+              }
+
+              const response = await fetch("/wp-json/wp/v2/users/me", {
+                method: "GET",
+                credentials: "same-origin",
+                headers: {
+                  "X-WP-Nonce": nonce,
+                },
+              });
+
+              const isAuthenticated = response.status === 200;
+
+              // Only update the store if the user is not authenticated
+              if (!isAuthenticated) {
+                Alpine.store("builder").auth = false;
+                console.log("User is no longer authenticated");
+              }
+            } catch (error) {
+              console.error("Error checking authentication:", error);
+            }
+          };
+
+          // Run the check every 3 minutes
+          const intervalId = setInterval(checkAuth, 3 * 60 * 1000);
+
+          // Also run the check immediately
+          checkAuth();
+
+          // Return a function to stop the interval if needed
+          return () => clearInterval(intervalId);
+        }
+
+        // Call this function when your application initializes
+        document.addEventListener("DOMContentLoaded", () => {
+          if (typeof Alpine !== "undefined" && Alpine.store) {
+            setupAuthCheck();
+          } else {
+            console.error("Alpine.js store is not available");
+          }
+        });
+      </script>
+
+      <script>
+        function loadCompilerIframe() {
+          return new Promise((resolve, reject) => {
+            const iframe = document.createElement("iframe");
+            iframe.id = "compiler-iframe";
+            iframe.src = "/?agnostic=autocomplete";
+            iframe.className = "hidden";
+
+            iframe.onload = () => {
+              console.log("Compiler iframe loaded successfully");
+              resolve(iframe);
+            };
+
+            iframe.onerror = (error) => {
+              console.error("Error loading compiler iframe:", error);
+              reject(error);
+            };
+
+            document.body.appendChild(iframe);
+          });
+        }
+
+        // Usage example:
+        async function initializeCompiler() {
+          try {
+            const iframe = await loadCompilerIframe();
+            // You can do further initialization here if needed
+            console.log("Compiler iframe is ready");
+          } catch (error) {
+            console.error("Failed to load compiler iframe:", error);
+          }
+        }
+      </script>
+
+      <script>
+        window.addEventListener("message", function (event) {
+          if (event.data.type === "tailwindCSSSaved") {
+            console.log("COMPILE WINDOW HAS RUN");
+            Alpine.store("builder").addNotification("TAILWIND_COMPILE");
+          }
+        });
+      </script>
+      {{ include("@components/settings/base.twig") }}
+      {% do agnostic_footer %}
+    </div>
+  </body>
+</html>

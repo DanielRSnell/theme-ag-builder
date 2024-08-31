@@ -1,0 +1,52 @@
+<div class="p-4" x-show="activeTab === 'editor'">
+  <div class="space-y-4 lg:space-y-6">
+    <div id="class-attribute-manager" class="flex flex-col h-[250px] lg:h-[calc(33vh-2rem)] max-h-[250px]">
+      <div class="flex items-center justify-between p-2 rounded-t-lg bg-base-100">
+        <span class="text-xs font-semibold">Classes</span>
+        <div class="flex space-x-2">
+          <i class="text-xs ri-layout-grid-line"></i>
+          <i class="text-xs ri-layout-row-line"></i>
+          <i class="text-xs ri-layout-column-line"></i>
+          <i class="text-xs ri-layout-masonry-line"></i>
+        </div>
+      </div>
+      <div class="flex-grow overflow-y-auto bg-black border rounded-b-lg border-base-content/20">
+        <div id="class-manager-editor" class="w-full h-full overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <div class="my-0 divider"></div>
+
+    <div id="inner-html-manager" class="flex flex-col h-[250px] lg:h-[calc(33vh-2rem)] max-h-[250px]">
+      <div class="flex items-center justify-between p-2 rounded-t-lg bg-base-100">
+        <span class="text-xs font-semibold">InnerHTML</span>
+        <div class="flex space-x-2">
+          <i x-on:click="selectElementById('agnostic-content')" class="text-xs ri-code-line"></i>
+        </div>
+      </div>
+      <div class="flex-grow overflow-y-auto bg-black border rounded-b-lg border-base-content/20">
+        <div id="inner-html-editor" class="w-full h-full overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <div class="my-0 divider"></div>
+
+    <div id="attributes-manager" class="flex flex-col h-[250px] lg:h-[calc(33vh-2rem)] max-h-[250px]">
+      <div class="flex items-center justify-between p-2 rounded-t-lg bg-base-100">
+        <span class="text-xs font-semibold">Attributes</span>
+        <div class="flex space-x-2">
+          <i class="text-xs ri-at-line"></i>
+          <i class="text-xs ri-key-line"></i>
+          <i class="text-xs ri-hashtag"></i>
+          <i class="text-xs ri-price-tag-3-line"></i>
+        </div>
+      </div>
+      <div class="flex-grow overflow-y-auto bg-black border rounded-b-lg border-base-content/20">
+        <div id="attributes-editor" class="w-full h-full overflow-y-auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ include('@components/editor/store') }}
+{{ include('@components/editor/init.html') }}

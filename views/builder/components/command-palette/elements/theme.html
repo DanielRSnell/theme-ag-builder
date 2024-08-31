@@ -1,0 +1,561 @@
+{% extends 'builder/frame.twig' %} {% block frameContent %}
+<div
+  class="w-full mx-auto bg-base-100 text-base-content max-w-7xl"
+  x-data="themeGenerator()"
+
+  @keydown.space.prevent="randomizeBaseColor()"
+>
+  <div class="relative px-4 py-8 mx-auto max-w-7xl">
+    <nav
+      class="absolute top-0 z-50 w-full px-8 mx-auto rounded-b-lg shadow-lg navbar bg-base-100 bg-base-300"
+    >
+      <div class="flex-1">
+        <select
+          x-model="currentThemeIndex"
+          @change="loadTheme()"
+          class="w-full max-w-xs select select-sm select-bordered"
+        >
+          <template
+            x-for="(theme, index) in savedThemes"
+            :key="index"
+          >
+            <option
+              :value="index"
+              x-text="theme.name"
+            ></option>
+          </template>
+        </select>
+      </div>
+      <div class="flex-none">
+        <div class="flex items-center space-x-2">
+          <input
+            type="text"
+            x-model="currentTheme.name"
+            class="input input-bordered input-sm"
+            placeholder="Theme Name"
+          />
+          <button
+            @click="saveTheme()"
+            class="btn btn-sm btn-primary"
+          >
+            <i class="fas fa-save"></i>
+          </button>
+          <button
+            @click="addNewTheme()"
+            class="btn btn-sm btn-secondary"
+          >
+            <i class="fas fa-plus"></i>
+          </button>
+          <button
+            @click="deleteTheme()"
+            class="btn btn-sm btn-error"
+            x-show="savedThemes.length > 1"
+          >
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="px-8 pt-12 mb-8">
+      <h2 class="mb-4 text-2xl font-semibold">Color Shade Generator</h2>
+      <div class="flex items-center mb-4">
+        <input
+          type="text"
+          x-model="baseColor"
+          @input="generateColorShades()"
+          class="mr-2 input input-sm input-bordered"
+          placeholder="Enter hex color"
+        />
+        <input
+          type="color"
+          x-model="baseColor"
+          @input="generateColorShades()"
+          class="w-8 h-8 p-0 bg-transparent border-none appearance-none cursor-pointer ring-0"
+        />
+        <button
+          @click="randomizeBaseColor()"
+          class="ml-2 btn btn-sm btn-primary"
+        >
+          <i class="fas fa-random"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-6 gap-2 mb-4 md:grid-cols-12">
+        <template
+          x-for="shade in colorShades"
+          :key="shade.label"
+        >
+          <div
+            @click="selectShade(shade.hex)"
+            class="relative flex flex-col justify-center w-full p-2 rounded-lg cursor-pointer h-14 md:h-24 md:p-4 glass"
+            :style="`background-color: ${shade.hex}; color: ${getContrastColor(shade.hex)};`"
+          >
+            <div class="text-xs text-center">
+              <div x-text="shade.label"></div>
+              <div x-text="shade.hex.toUpperCase()"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <h2 class="px-8 mb-4 text-2xl font-semibold">Theme Colors</h2>
+    <div class="grid grid-cols-1 gap-6 px-8 mb-8 md:grid-cols-4">
+      <template
+        x-for="group in ['primary', 'secondary', 'accent', 'neutral']"
+        :key="group"
+      >
+        <div class="flex flex-col space-y-4">
+          <template
+            x-for="suffix in ['', '-focus', '-content']"
+            :key="suffix"
+          >
+            <div
+              class="relative shadow-xl card glass"
+              :style="`background-color: ${flattenedColors[group + suffix]}; color: ${getContrastColor(flattenedColors[group + suffix])};`"
+            >
+              <div class="p-4 card-body">
+                <h3
+                  class="text-lg capitalize card-title"
+                  x-text="group + suffix"
+                ></h3>
+                <div class="flex items-center space-x-2">
+                  <input
+                    type="color"
+                    :id="group + suffix"
+                    x-model="flattenedColors[group + suffix]"
+                    @input="updateTheme()"
+                    class="w-8 h-8 p-0 bg-transparent border-none appearance-none cursor-pointer ring-0"
+                  />
+                  <input
+                    type="text"
+                    x-model="flattenedColors[group + suffix]"
+                    @input="updateTheme()"
+                    class="flex-grow input input-sm input-bordered"
+                    :style="`background-color: ${flattenedColors[group + suffix]}; color: ${getContrastColor(flattenedColors[group + suffix])};`"
+                  />
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2 class="px-8 mb-4 text-2xl font-semibold">Base Colors</h2>
+    <div class="grid grid-cols-1 gap-6 px-8 mb-8 md:grid-cols-4">
+      <template
+        x-for="suffix in ['100', '200', '300', 'content']"
+        :key="suffix"
+      >
+        <div
+          class="relative shadow-xl card glass"
+          :style="`background-color: ${flattenedColors['base-' + suffix]}; color: ${getContrastColor(flattenedColors['base-' + suffix])};`"
+        >
+          <div class="p-4 card-body">
+            <h3
+              class="text-lg capitalize card-title"
+              x-text="'base-' + suffix"
+            ></h3>
+            <div class="flex items-center space-x-2">
+              <input
+                type="color"
+                :id="'base-' + suffix"
+                x-model="flattenedColors['base-' + suffix]"
+                @input="updateTheme()"
+                class="w-8 h-8 p-0 bg-transparent border-none appearance-none cursor-pointer ring-0"
+              />
+              <input
+                type="text"
+                x-model="flattenedColors['base-' + suffix]"
+                @input="updateTheme()"
+                class="flex-grow input input-sm input-bordered"
+                :style="`background-color: ${flattenedColors['base-' + suffix]}; color: ${getContrastColor(flattenedColors['base-' + suffix])};`"
+              />
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2 class="px-8 mb-4 text-2xl font-semibold">Alert Colors</h2>
+    <div class="grid grid-cols-1 gap-6 px-8 mb-8 md:grid-cols-4">
+      <template
+        x-for="group in ['info', 'success', 'warning', 'error']"
+        :key="group"
+      >
+        <div class="flex flex-col space-y-4">
+          <template
+            x-for="suffix in ['', '-content']"
+            :key="suffix"
+          >
+            <div
+              class="relative shadow-xl card glass"
+              :style="`background-color: ${flattenedColors[group + suffix]}; color: ${getContrastColor(flattenedColors[group + suffix])};`"
+            >
+              <div class="p-4 card-body">
+                <h3
+                  class="text-lg capitalize card-title"
+                  x-text="group + suffix"
+                ></h3>
+                <div class="flex items-center space-x-2">
+                  <input
+                    type="color"
+                    :id="group + suffix"
+                    x-model="flattenedColors[group + suffix]"
+                    @input="updateTheme()"
+                    class="w-8 h-8 p-0 bg-transparent border-none appearance-none cursor-pointer ring-0"
+                  />
+                  <input
+                    type="text"
+                    x-model="flattenedColors[group + suffix]"
+                    @input="updateTheme()"
+                    class="flex-grow input input-sm input-bordered"
+                    :style="`background-color: ${flattenedColors[group + suffix]}; color: ${getContrastColor(flattenedColors[group + suffix])};`"
+                  />
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <div class="mb-8">
+      <h2 class="mb-4 text-2xl font-semibold">Theme Configuration</h2>
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <template
+          x-for="(value, key) in currentTheme.config"
+          :key="key"
+        >
+          <div>
+            <label
+              :for="key"
+              class="block mb-1 text-sm font-medium"
+              x-text="key"
+            ></label>
+            <input
+              :id="key"
+              type="text"
+              x-model="currentTheme.config[key]"
+              @input="updateTheme()"
+              class="w-full input input-sm input-bordered"
+            />
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="mb-4 text-2xl font-semibold">Generated Theme</h2>
+      <pre
+        class="p-4 overflow-x-auto rounded-lg bg-base-300"
+      ><code x-text="generateThemeConfig()"></code></pre>
+      <div class="flex mt-4 space-x-2">
+        <button
+          @click="copyThemeConfig()"
+          class="btn btn-sm btn-primary"
+        >
+          <i class="fas fa-copy"></i> Copy Theme Config
+        </button>
+        <button
+          @click="pasteThemeConfig()"
+          class="btn btn-sm btn-secondary"
+        >
+          <i class="fas fa-paste"></i> Paste Theme Config
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    input[type="color"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+    }
+    input[type="color"]::-moz-color-swatch {
+      border: none;
+    }
+  </style>
+</div>
+
+<script>
+  function themeGenerator() {
+    return {
+      savedThemes: [],
+      currentThemeIndex: 0,
+      baseColor: "#3b82f6",
+      colorShades: [],
+      rest_url: "/wp-json/agnostic/v1",
+      rest_nonce: "{{ function('wp_create_nonce', 'wp_rest') }}",
+      flattenedColors: {
+        primary: "#570DF8",
+        "primary-focus": "#4506CB",
+        "primary-content": "#ffffff",
+        secondary: "#F000B8",
+        "secondary-focus": "#BD0091",
+        "secondary-content": "#ffffff",
+        accent: "#37CDBE",
+        "accent-focus": "#2AA79B",
+        "accent-content": "#ffffff",
+        neutral: "#3D4451",
+        "neutral-focus": "#2A2E37",
+        "neutral-content": "#ffffff",
+        "base-100": "#ffffff",
+        "base-200": "#F2F2F2",
+        "base-300": "#E5E6E6",
+        "base-content": "#1F2937",
+        info: "#3ABFF8",
+        "info-content": "#002B3D",
+        success: "#36D399",
+        "success-content": "#003320",
+        warning: "#FBBD23",
+        "warning-content": "#382800",
+        error: "#F87272",
+        "error-content": "#470000",
+      },
+      currentTheme: {
+        name: "Default Theme",
+        config: {
+          "--rounded-box": "1rem",
+          "--rounded-btn": "0.5rem",
+          "--rounded-badge": "1.9rem",
+          "--animation-btn": "0.25s",
+          "--animation-input": "0.2s",
+          "--btn-focus-scale": "0.95",
+          "--border-btn": "1px",
+          "--tab-border": "1px",
+          "--tab-radius": "0.5rem",
+        },
+      },
+      async init() {
+        window.parent.console.log("Theme Manager Initialized");
+        window.parent.ThemeManager = this;
+        await this.fetchThemes();
+        this.generateColorShades();
+        this.updateTheme();
+        this.refreshTW();
+      },
+      async fetchThemes() {
+        try {
+          const response = await fetch(`${this.rest_url}/themes`, {
+            headers: {
+              "X-WP-Nonce": this.rest_nonce,
+            },
+          });
+          if (!response.ok) throw new Error("Failed to fetch themes");
+          this.savedThemes = await response.json();
+          if (this.savedThemes.length > 0) {
+            this.currentTheme = this.savedThemes[0];
+            this.flattenedColors = { ...this.currentTheme.colors };
+          }
+        } catch (error) {
+          console.error("Error fetching themes:", error);
+        }
+      },
+      getThemes() {
+        const allThemesConfig = {};
+        for (const theme of this.savedThemes) {
+          allThemesConfig[theme.name] = {
+            ...theme.colors,
+            ...theme.config,
+          };
+        }
+        return JSON.stringify(allThemesConfig, null, 2);
+      },
+      async saveThemes() {
+        try {
+          const response = await fetch(`${this.rest_url}/themes`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-WP-Nonce": this.rest_nonce,
+            },
+            body: JSON.stringify(this.savedThemes),
+          });
+          if (!response.ok) throw new Error("Failed to save themes");
+          const result = await response.json();
+          console.log(result.message);
+          alert("Themes saved successfully!");
+        } catch (error) {
+          console.error("Error saving themes:", error);
+          alert("Failed to save themes. Please try again.");
+        }
+      },
+      generateColorShades() {
+        const baseColor = chroma(this.baseColor);
+        const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+        this.colorShades = shades.map((shade) => {
+          let color;
+          if (shade < 500) {
+            color = chroma.mix("white", baseColor, shade / 500);
+          } else if (shade > 500) {
+            color = chroma.mix(baseColor, "black", (shade - 500) / 450);
+          } else {
+            color = baseColor;
+          }
+          return {
+            label: shade,
+            hex: color.hex(),
+          };
+        });
+      },
+      refreshTW() {
+        window.refreshTW();
+      },
+      selectShade(hex) {
+        if (navigator.clipboard && window.isSecureContext) {
+          // For secure contexts (HTTPS)
+          navigator.clipboard.writeText(hex)
+            .then(() => {
+              console.log('Color copied to clipboard:', hex);
+              // Optionally, you can show a success message to the user
+              // alert('Color copied to clipboard!');
+            })
+            .catch(err => {
+              console.error('Failed to copy color: ', err);
+              alert('Failed to copy color. Please try again.');
+            });
+        } else {
+          // Fallback for non-secure contexts or older browsers
+          const textArea = document.createElement("textarea");
+          textArea.value = hex;
+          document.body.appendChild(textArea);
+          textArea.select();
+          try {
+            document.execCommand('copy');
+            console.log('Color copied to clipboard:', hex);
+            // Optionally, you can show a success message to the user
+            // alert('Color copied to clipboard!');
+          } catch (err) {
+            console.error('Failed to copy color: ', err);
+            alert('Failed to copy color. Please try again.');
+          }
+          document.body.removeChild(textArea);
+        }
+      },
+      randomizeBaseColor() {
+        this.baseColor = chroma.random().hex();
+        this.generateColorShades();
+      },
+      updateTheme() {
+        let style = ":root {\n";
+        for (const [key, value] of Object.entries(this.flattenedColors)) {
+          style += `  --${key}: ${value};\n`;
+        }
+        for (const [key, value] of Object.entries(this.currentTheme.config)) {
+          style += `  ${key}: ${value};\n`;
+        }
+        style += "}\n";
+        document.getElementById("theme-style").textContent = style;
+      },
+      async saveTheme() {
+        this.currentTheme.colors = { ...this.flattenedColors };
+        const existingIndex = this.savedThemes.findIndex(
+          (theme) => theme.name === this.currentTheme.name
+        );
+        if (existingIndex !== -1) {
+          this.savedThemes[existingIndex] = JSON.parse(
+            JSON.stringify(this.currentTheme)
+          );
+        } else {
+          this.savedThemes.push(JSON.parse(JSON.stringify(this.currentTheme)));
+        }
+        await this.saveThemes();
+        window.parent.refreshTailwind();
+      },
+      addNewTheme() {
+        const newTheme = JSON.parse(JSON.stringify(this.currentTheme));
+        newTheme.name = "New Theme " + (this.savedThemes.length + 1);
+        this.savedThemes.push(newTheme);
+        this.currentThemeIndex = this.savedThemes.length - 1;
+        this.loadTheme();
+      },
+      loadTheme() {
+        this.currentTheme = JSON.parse(
+          JSON.stringify(this.savedThemes[this.currentThemeIndex])
+        );
+        this.flattenedColors = { ...this.currentTheme.colors };
+        this.updateTheme();
+      },
+      async deleteTheme() {
+        if (this.savedThemes.length > 1) {
+          this.savedThemes.splice(this.currentThemeIndex, 1);
+          this.currentThemeIndex = 0;
+          this.loadTheme();
+          await this.saveThemes();
+        }
+      },
+      generateThemeConfig() {
+        const themeConfig = {
+          [this.currentTheme.name]: {
+            ...this.flattenedColors,
+            ...this.currentTheme.config,
+          },
+        };
+        return JSON.stringify(themeConfig, null, 2);
+      },
+      copyThemeConfig() {
+        const config = this.generateThemeConfig();
+        navigator.clipboard.writeText(config).then(() => {
+          alert("Theme config copied to clipboard!");
+        });
+      },
+      pasteThemeConfig() {
+        navigator.clipboard
+          .readText()
+          .then((pastedText) => {
+            try {
+              const pastedConfig = JSON.parse(pastedText);
+              const themeName = Object.keys(pastedConfig)[0];
+              const themeData = pastedConfig[themeName];
+
+              this.currentTheme.name = themeName;
+              this.flattenedColors = {};
+              this.currentTheme.config = {};
+
+              for (const [key, value] of Object.entries(themeData)) {
+                if (key.startsWith("--")) {
+                  this.currentTheme.config[key] = value;
+                } else {
+                  this.flattenedColors[key] = value;
+                }
+              }
+
+              this.updateTheme();
+              alert("Theme config applied successfully!");
+            } catch (error) {
+              console.error("Error parsing pasted theme config:", error);
+              alert(
+                "Failed to parse the pasted theme config. Please ensure it's a valid JSON."
+              );
+            }
+          })
+          .catch((error) => {
+            console.error("Error reading from clipboard:", error);
+            alert(
+              "Failed to read from clipboard. Please ensure you've granted permission."
+            );
+          });
+      },
+      getContrastColor(hex) {
+        return chroma(hex).luminance() > 0.5 ? "#000000" : "#ffffff";
+      },
+    };
+  }
+</script>
+{% endblock %}

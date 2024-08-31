@@ -1,0 +1,146 @@
+<div
+  class="absolute left-[10%] top-[6px] z-[9999] mt-[-4px] flex items-center space-x-2"
+>
+  <div
+    class="dropdown"
+    x-data="{ open: false }"
+  >
+    <label
+      tabindex="0"
+      class="m-1 btn btn-sm"
+      @click="open = !open"
+    >
+      <span x-text="theme.charAt(0).toUpperCase() + theme.slice(1)"></span>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="w-4 h-4 ml-1"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7"
+        />
+      </svg>
+    </label>
+    <div
+      x-show="open"
+      @click.away="open = false"
+      tabindex="0"
+      class="w-56 mt-1 overflow-y-auto border shadow-2xl scrollbar-hide h-96 dropdown-content bg-base-300/90 backdrop-blur-md text-base-content rounded-box border-white/5 outline outline-1 outline-black/5"
+    >
+      <div class="grid grid-cols-1 gap-3 p-3">
+        <template
+          x-for="(themeOption, index) in [
+            'light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate', 'synthwave', 'retro', 'cyberpunk',
+            'valentine', 'halloween', 'garden', 'forest', 'aqua', 'lofi', 'pastel', 'fantasy', 'wireframe',
+            'black', 'luxury', 'dracula', 'cmyk', 'autumn', 'business', 'acid', 'lemonade', 'night', 'coffee', 'winter'
+          ]"
+          :key="index"
+        >
+          <button
+            class="outline-base-content text-start outline-offset-4"
+            :data-set-theme="themeOption"
+            data-act-class="[&amp;_svg]:visible"
+            @click="setTheme(themeOption); open = false"
+          >
+            <span
+              class="block w-full font-sans cursor-pointer bg-base-100 rounded-btn text-base-content"
+              :data-theme="themeOption"
+            >
+              <span class="grid grid-cols-5 grid-rows-3">
+                <span
+                  class="flex items-center col-span-5 row-span-3 row-start-1 gap-2 px-4 py-3"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    class="invisible w-3 h-3 shrink-0"
+                  >
+                    <path
+                      d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"
+                    ></path>
+                  </svg>
+                  <span
+                    class="flex-grow text-sm"
+                    x-text="themeOption"
+                  ></span>
+                  <span class="flex flex-wrap h-full gap-1 shrink-0">
+                    <span class="w-2 bg-primary rounded-badge"></span>
+                    <span class="w-2 bg-secondary rounded-badge"></span>
+                    <span class="w-2 bg-accent rounded-badge"></span>
+                    <span class="w-2 bg-neutral rounded-badge"></span>
+                  </span>
+                </span>
+              </span>
+            </span>
+          </button>
+        </template>
+      </div>
+    </div>
+  </div>
+  {{ include('builder/components/editor/code-theme.html') }}
+  <button
+    class="btn btn-circle btn-sm"
+    data-tippy-content="Builder Theme"
+    x-on:click="tab == 'Settings' ? tab = 'Build' : tab ='Settings'"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      class="w-5 h-5"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"
+      />
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+      />
+    </svg>
+  </button>
+  <div
+    x-show="$store.builder.notification !== null"
+    class="flex items-center gap-2 text-sm"
+  >
+    <div class="relative flex w-3 h-3">
+      <div
+        class="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping"
+        :class="{
+        'bg-primary': $store.builder.notification?.color === 'primary',
+        'bg-accent': $store.builder.notification?.color === 'accent',
+        'bg-secondary': $store.builder.notification?.color === 'secondary',
+        'bg-info': $store.builder.notification?.color === 'info',
+        'bg-warning': $store.builder.notification?.color === 'warning',
+        'bg-error': $store.builder.notification?.color === 'error',
+        'bg-success': $store.builder.notification?.color === 'success'
+      }"
+      ></div>
+      <div
+        class="relative inline-flex w-3 h-3 rounded-full"
+        :class="{
+        'bg-primary': $store.builder.notification?.color === 'primary',
+        'bg-accent': $store.builder.notification?.color === 'accent',
+        'bg-secondary': $store.builder.notification?.color === 'secondary',
+        'bg-info': $store.builder.notification?.color === 'info',
+        'bg-warning': $store.builder.notification?.color === 'warning',
+        'bg-error': $store.builder.notification?.color === 'error',
+        'bg-success': $store.builder.notification?.color === 'success'
+      }"
+      ></div>
+    </div>
+    <span x-text="$store.builder.notification?.message">Builder</span>
+  </div>
+</div>

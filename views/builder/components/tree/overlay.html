@@ -1,0 +1,167 @@
+<script>
+// Function to create and position the overlay element for tree items
+function createTreeItemOverlay(selector, type) {
+    const preview = document.querySelector('#previewiframe');
+    const iframeDoc = preview.contentDocument;
+    console.log('iframeDoc trigger target from tree: ', selector, 'The Type: ', type);
+    const element = iframeDoc.querySelector(selector);
+
+    if (!element) return null;
+
+    const overlay = document.createElement('div');
+
+    const rect = element.getBoundingClientRect();
+    const scrollX = iframeDoc.documentElement.scrollLeft || iframeDoc.body.scrollLeft;
+    const scrollY = iframeDoc.documentElement.scrollTop || iframeDoc.body.scrollTop;
+
+    overlay.classList.add('lc-tree-overlay');
+    overlay.style.position = 'absolute';
+    overlay.style.left = rect.left + scrollX - 4 + 'px';
+    overlay.style.top = rect.top + scrollY - 4 + 'px';
+    overlay.style.width = rect.width + 8 + 'px';
+    overlay.style.height = rect.height + 8 + 'px';
+    overlay.style.border = '2px dashed';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.zIndex = '1000000';
+    overlay.style.borderRadius = '4px';
+
+    const tagElement = document.createElement('div');
+    tagElement.classList.add('lc-tree-tag');
+    tagElement.textContent = element.tagName.toUpperCase();
+    tagElement.style.position = 'absolute';
+    tagElement.style.top = '-20px';
+    tagElement.style.left = '0';
+    tagElement.style.backgroundColor = 'rgba(232,62,139)';
+    tagElement.style.color = '#fff';
+    tagElement.style.padding = '2px 0.8rem';
+    tagElement.style.fontSize = '12px';
+    tagElement.style.fontWeight = 'bold';
+    tagElement.style.borderRadius = '4px';
+    tagElement.style.fontFamily = 'sans-serif';
+
+    overlay.appendChild(tagElement);
+
+    if (type === 'hover') {
+        overlay.style.borderColor = 'rgba(232,62,139)';
+    } else if (type === 'active') {
+        overlay.style.borderColor = 'rgb(39,198,218)';
+    }
+
+    iframeDoc.body.appendChild(overlay);
+
+    return overlay;
+}
+
+// Function to handle tree box mouseover event
+function handleTreeBoxMouseOver(event) {
+    const treeBox = event.target.closest('.tree-box');
+    if (treeBox) {
+        const selector = treeBox.getAttribute('data-selector');
+        removeTreeOverlay('hover');
+        createTreeItemOverlay(selector, 'hover').setAttribute('data-tree-hover-overlay', '');
+    }
+}
+
+// Function to handle tree box mouseout event
+function handleTreeBoxMouseOut(event) {
+    const treeBox = event.target.closest('.tree-box');
+    if (treeBox) {
+        removeTreeOverlay('hover');
+    }
+}
+
+// Function to remove tree overlay
+function removeTreeOverlay(type) {
+    const preview = document.getElementById('previewiframe');
+    const iframeDoc = preview.contentDocument || preview.contentWindow.document;
+    const overlay = iframeDoc.querySelector(`[data-tree-${type}-overlay]`);
+    if (overlay) {
+        overlay.remove();
+    }
+}
+
+// Function to remove data-active="true" from all .tree-box elements
+function clearActiveTreeBoxes() {
+    const treeBoxes = document.querySelectorAll('#agnostic-tree-wrap .tree-box');
+    treeBoxes.forEach(box => box.removeAttribute('data-active'));
+}
+
+// Function to set active tree box and scroll to the element in the iframe
+function activeTreeBox(selector) {
+    clearActiveTreeBoxes();
+    const treeBox = document.querySelector(`#agnostic-tree-wrap .tree-box[data-selector="${selector}"]`);
+    if (treeBox) {
+        treeBox.setAttribute('data-active', 'true');
+        
+        // Scroll to the element in the iframe
+        const preview = document.querySelector('#previewiframe');
+        const iframeDoc = preview.contentDocument;
+        const element = iframeDoc.querySelector(selector);
+        
+        if (element) {
+            const rect = element.getBoundingClientRect();
+            const scrollTop = iframeDoc.documentElement.scrollTop || iframeDoc.body.scrollTop;
+            const scrollLeft = iframeDoc.documentElement.scrollLeft || iframeDoc.body.scrollLeft;
+            
+            const targetScrollTop = scrollTop + rect.top - preview.clientHeight / 2 + rect.height / 2;
+            const targetScrollLeft = scrollLeft + rect.left - preview.clientWidth / 2 + rect.width / 2;
+
+            iframeDoc.documentElement.scrollTo({
+                top: targetScrollTop,
+                left: targetScrollLeft,
+                behavior: 'smooth'
+            });
+        }
+    }
+}
+
+// Function to handle tree box click event
+function handleTreeBoxClick(event) {
+    const treeBox = event.target.closest('.tree-box');
+    if (treeBox) {
+        const selector = treeBox.getAttribute('data-selector');
+        removeTreeOverlay('active');
+        createTreeItemOverlay(selector, 'active').setAttribute('data-tree-active-overlay', '');
+        activeTreeBox(selector);
+    }
+}
+
+// Add event listeners to the tree container
+const treeContainer = document.getElementById('agnostic-tree-wrap');
+treeContainer.addEventListener('mouseover', handleTreeBoxMouseOver);
+treeContainer.addEventListener('mouseout', handleTreeBoxMouseOut);
+treeContainer.addEventListener('click', handleTreeBoxClick);
+
+// Function to update tree overlays on iframe scroll
+function updateTreeOverlaysOnScroll() {
+    const preview = document.getElementById('previewiframe');
+    const iframeDoc = preview.contentDocument || preview.contentWindow.document;
+    iframeDoc.addEventListener('scroll', () => {
+        const hoverOverlay = iframeDoc.querySelector('[data-tree-hover-overlay]');
+        const activeOverlay = iframeDoc.querySelector('[data-tree-active-overlay]');
+
+        if (hoverOverlay) {
+            const hoverItem = treeContainer.querySelector('.tree-box:hover');
+            if (hoverItem) {
+                const selector = hoverItem.getAttribute('data-selector');
+                removeTreeOverlay('hover');
+                createTreeItemOverlay(selector, 'hover').setAttribute('data-tree-hover-overlay', '');
+            }
+        }
+
+        if (activeOverlay) {
+            const activeItem = treeContainer.querySelector('.tree-box[data-active="true"]');
+            if (activeItem) {
+                const selector = activeItem.getAttribute('data-selector');
+                removeTreeOverlay('active');
+                createTreeItemOverlay(selector, 'active').setAttribute('data-tree-active-overlay', '');
+            }
+        }
+    });
+}
+
+// Call this function after the iframe has loaded
+document.getElementById('previewiframe').addEventListener('load', function() {
+    updateTreeOverlaysOnScroll();
+});
+</script>

@@ -1,0 +1,54 @@
+<section
+  class="live-shortcode z-50 fixed bottom-0 flex flex-col max-w-2xl mr-auto w-full"
+>
+  <div
+    class="bg-gray-800 rounded-t-3xl"
+    x-data="{open: false}"
+  >
+    <div class="flex w-full justify-between items-center pt-3 pb-2 px-8">
+      <span class="text-gray-100 font-semibold text-lg">Debug</span>
+      <button
+        class="bg-gray-600 text-gray-300 py-1 px-4 rounded-md transition-colors duration-200 hover:bg-gray-700"
+        x-text="open ? 'Deactivate' : 'Activate'"
+        x-on:click="open = !open"
+      ></button>
+    </div>
+    <div
+      x-show="open"
+      class="bg-black rounded-t-3xl p-8"
+    >
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism-tomorrow.min.css"
+      />
+      <style>
+        pre {
+          max-height: {{ maxheight ? maxheight : 400 }}px;
+          overflow-y: auto;
+          overflow-x: hidden;
+          max-width: 100%;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          background-color: #1a1a1a;
+          padding: 10px;
+          border: 1px solid #333;
+          border-radius: 4px;
+          color: #d4d4d4;
+        }
+      </style>
+      <pre class="language-json">
+        <code>{{ function('json_encode', state, constant('JSON_PRETTY_PRINT')) | escape('html') }}</code>
+      </pre>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/prism.min.js"></script>
+      <script>
+        Prism.highlightAll();
+      </script>
+    </div>
+  </div>
+</section>
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism-tomorrow.min.css"
+/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/prism.min.js"></script>

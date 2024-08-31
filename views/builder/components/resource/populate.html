@@ -1,0 +1,223 @@
+ <div id="tree-head" x-show="tab === null || tab === 'content'" x-on:click="onChangeTab('content')">
+      <div id="box-title">
+        <span>Populate Content</span>
+      </div>
+      <div class="editor-actions">
+        <a href="#" id="editor-sort" class="open-media-modal" x-bind:class="tab === 'attributes' ? 'rotate-icon' : ''">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.1717 12.0005L9.34326 9.17203L10.7575 7.75781L15.0001 12.0005L10.7575 16.2431L9.34326 14.8289L12.1717 12.0005Z"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+<div x-show="tab === 'content'" x-collapse>
+  <div class="tree-content-padding" x-data="{
+    current_page: '{{ post.title }}',
+    content_type: null,
+    selection_type: null,
+    single_id: null,
+    search: null,
+    content_types: ['archive', 'single', 'tax', 'search'],
+    selection_types: [],
+    singles: [],
+    filtered_singles: [],
+    single_search: '',
+    init() {
+      window.current_post_title = '{{ post.title }}';
+      var storedSettings = JSON.parse(localStorage.getItem('{{ post.title }}'));
+      // now update the state 
+      if (storedSettings) {
+        this.content_type = storedSettings.content_type;
+        this.selection_type = storedSettings.selection_type;
+        this.single_id = storedSettings.single_id;
+        this.search = storedSettings.search;
+        
+        // Call onGetSelectionTypes() and onGetSingles() after updating the state
+        this.onGetSelectionTypes();
+        if (this.selection_type) {
+          this.onGetSingles();
+        }
+      }
+    },
+    onGetSelectionTypes() {
+      // Make an API call to get the selection types based on the selected content_type
+      fetch(`/wp-json/lc/v1/selection-types?content_type=${this.content_type}`)
+        .then(response => response.json())
+        .then(data => {
+          this.selection_types = data;
+        });
+    },
+    onGetSingles() {
+      // Make an API call to get the singles based on the selected selection_type
+      fetch(`/wp-json/lc/v1/singles?selection_type=${this.selection_type}`)
+        .then(response => response.json())
+        .then(data => {
+          this.singles = data;
+          this.filtered_singles = data;
+        });
+    },
+    onClear() {
+      this.content_type = null;
+      this.selection_type = null;
+      this.single_id = null;
+      this.search = null;
+      this.single_search = '';
+
+      // Clear the stored settings
+      localStorage.removeItem(this.current_page);
+
+      setTimeout(() => {
+        processTwigElements();
+      }, 10);
+    },
+    onApply() {
+      // Save the selected values to local storage
+      localStorage.setItem(this.current_page, JSON.stringify({
+        content_type: this.content_type,
+        selection_type: this.selection_type,
+        single_id: this.single_id,
+        search: this.search
+      }));
+      // Trigger the twig shortcode update or page refresh here
+      // For example, you can use Alpine.js to dispatch a custom event
+      // emit an html event
+      setTimeout(() => {
+        processTwigElements();
+      }, 10);
+    },
+    onSingleSearch() {
+      this.filtered_singles = this.singles.filter(single =>
+        single.title.toLowerCase().includes(this.single_search.toLowerCase())
+      );
+    },
+    onSingleSelect(single) {
+      this.single_id = single.id;
+      this.single_search = single.title;
+      this.filtered_singles = [];
+    }
+  }">
+    <form class="tree-view-container form-column">
+      <div class="mb-3 form-item-column">
+        <select id="content_type" class="form-select tree-view-item" x-model="content_type" @change="onGetSelectionTypes">
+          <option value="">Select Content Type</option>
+          <template x-for="type in content_types" :key="type">
+            <option :value="type" x-text="type"></option>
+          </template>
+        </select>
+      </div>
+      
+      <div class="mb-3 form-item-column" x-show="content_type && content_type !== 'search'">
+        <select id="selection_type" class="form-select tree-view-item" x-model="selection_type" @change="onGetSingles">
+          <option value="">Select Selection Type</option>
+          <template x-for="type in selection_types" :key="type">
+            <option :value="type" x-text="type"></option>
+          </template>
+        </select>
+      </div>
+      
+      <div class="mb-3 form-item-column" x-show="selection_type && ['single', 'tax'].includes(content_type)">
+        <div class="autocomplete-wrapper">
+          <input type="text" id="single_search" class="form-control tree-view-item" x-model="single_search" @input="onSingleSearch" placeholder="Search Single">
+          <ul class="autocomplete-results" x-show="filtered_singles.length">
+            <template x-for="single in filtered_singles" :key="single.id">
+              <li class="autocomplete-item" @click="onSingleSelect(single)" x-text="single.title"></li>
+            </template>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="mb-3 form-item-column" x-show="content_type === 'search'">
+        <input type="text" id="search" class="form-control tree-view-item" x-model="search">
+      </div>
+      
+      <div class="d-flex justify-content-between align-items-center gap-4">
+        <button type="button" class="btn btn-primary" @click="onApply" x-show="(content_type === 'search' && search) || (content_type !== 'search' && (content_type !== 'single' || single_id) && (content_type !== 'tax' || single_id))">Apply</button>
+        <button type="button" class="btn btn-secondary" @click="onClear" x-show="(content_type === 'search' && search) || (content_type !== 'search' && (content_type !== 'single' || single_id) && (content_type !== 'tax' || single_id))">Clear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .form-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-item-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-item-column > .form-select,
+  .form-item-column > .autocomplete-wrapper > .form-control {
+    width: 100%;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 0.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    outline: none;
+  }
+
+  .btn-primary {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+  }
+
+  .tree-view-item-content-wrapper {
+    font-size: 0.8rem;
+    color: #a9b2be;
+    border-radius: 0.25rem;
+  }
+
+  .gap-4 {
+    gap: 1rem;
+  }
+
+  .tree-content-padding {
+    padding-block: 1rem;
+  }
+
+  .autocomplete-wrapper {
+    position: relative;
+  }
+
+  .autocomplete-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 999;
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+  }
+
+  .autocomplete-item {
+    padding: 0.5rem;
+    cursor: pointer;
+    color: rgba(0,0,0,0.8);
+  }
+
+  .autocomplete-item:hover {
+    background-color: #f5f5f5;
+  }
+</style>

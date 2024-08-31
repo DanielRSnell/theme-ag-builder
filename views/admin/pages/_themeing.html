@@ -1,0 +1,250 @@
+<div x-data="themeManager()" x-init="init()" x-show="activeMenuItem == 'theme'" class="flex flex-col w-full h-full gap-4 p-6 rounded-3xl bg-base-200">
+  <div class="flex justify-center w-full mb-4">
+    <div class="tabs tabs-boxed">
+      <template x-for="tab in tabs" :key="tab">
+        <a 
+          class="tab tab-lg" 
+          :class="{ 'tab-active': activeTab === tab }"
+          @click="setActiveTab(tab)"
+        >
+          <i :class="tabIcons[tab]" class="mr-2"></i>
+          <span x-text="tabLabels[tab]"></span>
+        </a>
+      </template>
+    </div>
+  </div>
+
+  <div class="flex-grow w-full overflow-hidden rounded-3xl bg-base-100">
+    <div x-show="activeTab === 'theme'" class="w-full h-full">
+      <iframe src="/?agnostic=theme" class="w-full h-full border-none no-scrollbar rounded-3xl"></iframe>
+    </div>
+    <div x-show="activeTab === 'font'" class="w-full h-full">
+      <iframe src="/?agnostic=fonts" class="w-full h-full border-none no-scrollbar rounded-3xl"></iframe>
+    </div>
+    <div x-show="activeTab === 'stylebook'" class="w-full h-full">
+      <iframe src="/?agnostic=stylebook" class="w-full h-full border-none no-scrollbar rounded-3xl"></iframe>
+    </div>
+    <div x-show="activeTab === 'components'" class="w-full h-full">
+      <iframe src="/?agnostic=components" class="w-full h-full border-none no-scrollbar rounded-3xl"></iframe>
+    </div>
+    <div x-show="activeTab === 'config'" class="w-full h-full no-scrollbar">
+      <div id="configEditor" class="w-full h-full no-scrollbar"></div>
+    </div>
+    <div x-show="activeTab === 'css'" class="w-full h-full no-scrollbar">
+      <div id="cssEditor" class="w-full h-full no-scrollbar"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.themeStore = {};
+
+function loadMonaco() {
+  return new Promise((resolve) => {
+    if (window.monaco) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js';
+    script.onload = () => {
+      require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
+      require(['vs/editor/editor.main'], resolve);
+    };
+    document.body.appendChild(script);
+  });
+}
+
+function createEditor(containerId, language, value) {
+  const editor = monaco.editor.create(document.getElementById(containerId), {
+    language: language,
+    theme: 'vs-dark',
+    automaticLayout: true,
+    minimap: { enabled: false },
+    value: value
+  });
+  return editor;
+}
+
+function setupEditorListeners(editor, updateCallback) {
+  editor.onDidChangeModelContent(debounce(() => {
+    updateCallback(editor.getValue());
+  }, 1000));
+}
+
+function debounce(func, wait) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
+
+async function initMonacoEditors(config, css, updateConfig, updateCSS) {
+  await loadMonaco();
+  window.configEditor = createEditor('configEditor', 'javascript', config);
+  window.cssEditor = createEditor('cssEditor', 'css', css);
+  setupEditorListeners(window.configEditor, updateConfig);
+  setupEditorListeners(window.cssEditor, updateCSS);
+}
+
+function themeManager() {
+  return {
+    activeTab: 'theme',
+    tabs: ['theme', 'font', 'stylebook', 'components', 'config', 'css'],
+    tabLabels: {
+      theme: 'Theme', font: 'Font', stylebook: 'Stylebook',
+      components: 'Components', config: 'Config', css: 'CSS'
+    },
+    tabIcons: {
+      theme: 'ri-palette-line', font: 'ri-font-size-2', stylebook: 'ri-book-2-line',
+      components: 'ri-layout-masonry-line', config: 'ri-settings-3-line', css: 'ri-code-s-slash-line'
+    },
+    config() { return window.configEditor.getValue() },
+    css() { return  window.cssEditor.getValue() },
+    editorsInitialized: false,
+
+    refreshTailwindDebounced: debounce(() => {
+      if (typeof window.refreshTailwind === 'function') {
+        window.refreshTailwind();
+        // check for compiler-iframe 
+        if (document.querySelector('iframe[title="Compiler"]')) {
+          document.querySelector('iframe[title="Compiler"]').contentWindow.location.reload();
+        } else {
+          // create iframe with /?agnostic=autocomplete
+          const iframe = document.createElement('iframe');
+          iframe.src = '/?agnostic=autocomplete';
+          iframe.title = 'Compiler';
+          iframe.style.display = 'none';
+          document.body.appendChild(iframe);
+          console.log('Compiler iframe created');
+        }
+      } else {
+        console.warn('window.refreshTailwind is not a function');
+      }
+    }, 10),
+
+    async init() {
+      await this.fetchInitialContent();
+      await initMonacoEditors(
+        this.config,
+        this.css,
+        (value) => this.updateConfig(value),
+        (value) => this.updateCSS(value)
+      );
+      this.editorsInitialized = true;
+      this.$watch('activeTab', (value) => {
+        if (value === 'config' || value === 'css') {
+          this.$nextTick(() => this.loadEditorContents());
+        }
+      });
+      this.$watch('config', (value) => {
+        window.themeStore.config = value;
+        if (this.editorsInitialized && window.configEditor) {
+          const currentValue = window.configEditor.getValue();
+          if (currentValue !== value) {
+            window.configEditor.setValue(value);
+          }
+        }
+        this.refreshTailwindDebounced();
+      });
+      this.$watch('css', (value) => {
+        window.themeStore.css = value;
+        if (this.editorsInitialized && window.cssEditor) {
+          const currentValue = window.cssEditor.getValue();
+          if (currentValue !== value) {
+            window.cssEditor.setValue(value);
+          }
+        }
+        this.refreshTailwindDebounced();
+      });
+      window.themeManager = this;
+    },
+
+    async fetchInitialContent() {
+      try {
+        const [configContent, cssContent] = await Promise.all([
+          this.fetchTailwindConfig(),
+          this.fetchTailwindCSS()
+        ]);
+        
+        this.config = JSON.parse(configContent);
+        this.css = JSON.parse(cssContent);
+      } catch (error) {
+        console.error('Error initializing content:', error);
+      }
+    },
+
+    async fetchTailwindConfig() {
+      const response = await fetch('/wp-json/agnostic/v1/tailwind-config', {
+        headers: { 'X-WP-Nonce': wpApiSettings.nonce }
+      });
+      if (!response.ok) throw new Error('Failed to fetch Tailwind config');
+      return await response.text();
+    },
+
+    async fetchTailwindCSS() {
+      const response = await fetch('/wp-json/agnostic/v1/tailwind-css', {
+        headers: { 'X-WP-Nonce': wpApiSettings.nonce }
+      });
+      if (!response.ok) throw new Error('Failed to fetch Tailwind CSS');
+      return await response.text();
+    },
+
+    async updateConfig(value) {
+      this.config = value;
+      try {
+        const response = await fetch('/wp-json/agnostic/v1/tailwind-config', {
+          method: 'POST',
+          headers: { 
+            'X-WP-Nonce': wpApiSettings.nonce,
+            'Content-Type': 'application/javascript'
+          },
+          body: value
+        });
+        if (!response.ok) throw new Error('Failed to update Tailwind config');
+        console.log('Tailwind config updated successfully');
+        this.refreshTailwindDebounced();
+      } catch (error) {
+        console.error('Error updating Tailwind config:', error);
+      }
+    },
+
+    async updateCSS(value) {
+      this.css = value;
+      try {
+        const response = await fetch('/wp-json/agnostic/v1/tailwind-css', {
+          method: 'POST',
+          headers: { 
+            'X-WP-Nonce': wpApiSettings.nonce,
+            'Content-Type': 'text/css'
+          },
+          body: value
+        });
+        if (!response.ok) throw new Error('Failed to update Tailwind CSS');
+        console.log('Tailwind CSS updated successfully');
+        this.refreshTailwindDebounced();
+      } catch (error) {
+        console.error('Error updating Tailwind CSS:', error);
+      }
+    },
+
+    setActiveTab(tab) {
+      this.activeTab = tab;
+    },
+
+    loadEditorContents() {
+      if (this.editorsInitialized) {
+        if (this.activeTab === 'config' && window.configEditor) {
+          window.configEditor.setValue(this.config);
+        } else if (this.activeTab === 'css' && window.cssEditor) {
+          window.cssEditor.setValue(this.css);
+        }
+      }
+    }
+  };
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/editor/editor.main.min.css" />

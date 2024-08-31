@@ -1,0 +1,120 @@
+<div
+  class="h-full bg-base-300 text-base-content"
+  data-panel=""
+  data-panel-collapsible="true"
+  data-panel-id=":R79fau6la:"
+  data-panel-size="20.0"
+  id="data-panel-id-:R79fau6la:"
+  style="flex-basis: 0; flex-grow: 20; flex-shrink: 1; overflow: hidden"
+>
+  <!-- Tabbed Select START -->
+  <div class="flex h-[52px] items-center justify-between px-2">
+    <div class="w-full tabs tabs-boxed">
+      <a
+        class="tab"
+        :class="{ 'tab-active': mode === 'config' }"
+        @click="mode = 'config'"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-5 h-5 mr-2"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        Config
+      </a>
+      <a
+        class="tab"
+        :class="{ 'tab-active': mode === 'css' }"
+        @click="mode = 'css'"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-5 h-5 mr-2"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        CSS
+      </a>
+    </div>
+  </div>
+  <!-- Tabbed Select END -->
+
+  <div class="m-0 divider"></div>
+
+  <!-- Content Area START -->
+  <div class="w-full h-[88%] p-4 pr-3">
+    <div class="flex flex-col w-full h-full">
+      <div
+        x-show="mode === 'config'"
+        class="flex flex-col w-full h-full"
+        @click="console.log(mode)"
+      >
+        <div
+          class="flex items-center justify-between p-2 rounded-t-lg bg-base-200"
+        >
+          <span class="text-xs font-semibold">Configuration</span>
+          <div class="flex space-x-2">
+            <i class="text-xs ri-code-line"></i>
+            <i class="text-xs ri-settings-3-line"></i>
+            <i class="text-xs ri-file-code-line"></i>
+            <i class="text-xs ri-braces-line"></i>
+          </div>
+        </div>
+        <div
+          class="flex-grow border rounded-b-lg bg-base-300 border-base-content/20"
+        >
+          <div
+            id="config-editor"
+            class="w-full h-full rounded-b-lg"
+          ></div>
+        </div>
+      </div>
+      <div
+        x-show="mode === 'css'"
+        class="flex flex-col w-full h-full"
+        @click="console.log(mode)"
+      >
+        <div
+          class="flex items-center justify-between p-2 rounded-t-lg bg-base-200"
+        >
+          <span class="text-xs font-semibold">CSS</span>
+          <div class="flex space-x-2">
+            <i class="text-xs ri-css3-line"></i>
+            <i class="text-xs ri-palette-line"></i>
+            <i class="text-xs ri-paint-brush-line"></i>
+            <i class="text-xs ri-layout-line"></i>
+          </div>
+        </div>
+        <div
+          class="flex-grow border rounded-b-lg bg-base-300 border-base-content/20"
+        >
+          <div
+            id="css-editor"
+            class="w-full h-full rounded-b-lg"
+          ></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Content Area END -->
+</div>
+
+<script>
+  tippy("[data-tippy-content]", {
+    placement: "bottom",
+    theme: "light-border",
+  });
+</script>

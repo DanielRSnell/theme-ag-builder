@@ -1,0 +1,45 @@
+<script>
+  async function timberRender() {
+    const store = Alpine.store("editors");
+    console.log("REQUEST START");
+    console.log("SWAP: Timber Render triggered");
+    const current = store.getCurrentContent();
+    const html = store.getCurrentRawContent().innerHTML;
+    const settings = store.settings;
+    const postId = store.template_id;
+    const restUrl = "/wp-json/agnostic/v1/render";
+    const nonce = store.nonce;
+
+    const data = {
+      post_id: postId,
+      html: html,
+      php: store.phpEditor,
+    };
+
+    console.log("SWAP: Timber Render Data", data);
+
+    try {
+      const response = await fetch(restUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-WP-Nonce": nonce,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(JSON.stringify(errData));
+      }
+
+      const result = await response.json();
+      console.log("SWAP: Context State: ", result);
+      store.handleResult(result, current);
+    } catch (error) {
+      console.error("SWAP: Timber Content Processing Error", error);
+      store.handleError(error, current);
+    }
+  }
+</script>

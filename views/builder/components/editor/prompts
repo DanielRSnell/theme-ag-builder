@@ -1,0 +1,375 @@
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css"
+  rel="stylesheet"
+/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+  body {
+    overflow: hidden;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--b2));
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--bc));
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--bc) / 0.8);
+  }
+</style>
+
+<div
+  class="h-[calc(100vh-45px)] bg-base-300 text-base-content flex gap-2 p-4 z-0"
+  x-data="promptInterface()"
+  x-init="init"
+  x-cloak
+>
+  <div
+    class="flex flex-col items-center w-12 py-4 space-y-4 rounded-md bg-base-200"
+  >
+    <div
+      class="tooltip tooltip-right"
+      data-tip="Prompt"
+    >
+      <button
+        @click="activeTab = 'prompt'"
+        class="btn btn-ghost btn-square btn-sm"
+        :class="{'btn-active': activeTab === 'prompt'}"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <div
+      class="tooltip tooltip-right"
+      data-tip="Template"
+    >
+      <button
+        @click="activeTab = 'template'"
+        class="btn btn-ghost btn-square btn-sm"
+        :class="{'btn-active': activeTab === 'template'}"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <div
+      class="tooltip tooltip-right"
+      data-tip="Data"
+    >
+      <button
+        @click="activeTab = 'data'"
+        class="btn btn-ghost btn-square btn-sm"
+        :class="{'btn-active': activeTab === 'data'}"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="w-[calc(50%-6px)] flex flex-col">
+    <div class="flex-grow p-4 overflow-y-auto">
+      <div
+        x-show="activeTab === 'prompt'"
+        class="h-full"
+      >
+        <textarea
+          id="prompt-editor"
+          x-model="prompt"
+          class="w-full h-full p-6 resize-none textarea textarea-bordered bg-base-200 text-base-content"
+        ></textarea>
+      </div>
+      <div
+        x-show="activeTab === 'template'"
+        class="h-full"
+      >
+        <div
+          id="editor-template"
+          class="h-full border rounded border-base-300"
+        ></div>
+      </div>
+      <div
+        x-show="activeTab === 'data'"
+        class="h-full"
+      >
+        <div
+          id="editor-data"
+          class="h-full border rounded border-base-300"
+        ></div>
+      </div>
+    </div>
+    <div class="p-4">
+      <button
+        @click="runPrompt"
+        :disabled="isRunning"
+        class="w-full btn btn-primary"
+        :class="{'btn-disabled': isRunning}"
+      >
+        <span x-text="isRunning ? 'Building...' : 'Run Prompt'"></span>
+      </button>
+    </div>
+  </div>
+  <div class="w-[calc(50%-6px)] flex flex-col bg-base-100 rounded-box p-4">
+    <div class="tabs tabs-boxed">
+      <a
+        class="tab"
+        :class="{ 'tab-active': activeResultTab === 'results' }"
+        @click="activeResultTab = 'results'"
+        >Results</a
+      >
+      <a
+        class="tab"
+        :class="{ 'tab-active': activeResultTab === 'preview' }"
+        @click="activeResultTab = 'preview'"
+        >Preview</a
+      >
+    </div>
+    <div class="flex-grow p-4 mt-4 overflow-y-auto bg-base-200">
+      <template x-if="isRunning">
+        <div class="space-y-4">
+          <div class="w-3/4 h-4 skeleton"></div>
+          <div class="h-4 skeleton"></div>
+          <div class="h-4 skeleton"></div>
+        </div>
+      </template>
+      <div
+        x-show="!isRunning && activeResultTab === 'results'"
+        x-html="responseHtml"
+        class="prose"
+      ></div>
+      <div
+        x-show="!isRunning && activeResultTab === 'preview'"
+        x-html="preview_html"
+        class="prose"
+      ></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function promptInterface() {
+    return {
+      threadId: null,
+      runId: null,
+      promptEditor: null,
+      templateEditor: null,
+      dataEditor: null,
+      responseHtml: "",
+      preview_html: "",
+      activeTab: "prompt",
+      activeResultTab: "results",
+      prompt: "",
+      isRunning: false,
+
+      init() {
+        this.initializeEditors();
+      },
+
+      initializeEditors() {
+        // this.promptEditor = ace.edit("editor-prompt");
+        // this.promptEditor.setTheme("ace/theme/github");
+        // this.promptEditor.session.setMode("ace/mode/text");
+        // this.templateEditor = ace.edit("editor-template");
+        // this.templateEditor.setTheme("ace/theme/tomorrow_night_bright");
+        // this.templateEditor.session.setMode("ace/mode/twig");
+        // this.dataEditor = ace.edit("editor-data");
+        // this.dataEditor.setTheme("ace/theme/tomorrow_night_bright");
+        // this.dataEditor.session.setMode("ace/mode/json");
+        // [this.templateEditor, this.dataEditor].forEach(editor => {
+        //     editor.setOptions({
+        //         fontSize: "14px",
+        //         showPrintMargin: false,
+        //         showGutter: false,
+        //         highlightActiveLine: false,
+        //         showLineNumbers: false
+        //     });
+        // });
+      },
+
+      async createThread() {
+        const response = await fetch("/wp-json/gpt/v1/create-thread", {
+          method: "POST",
+        });
+        const data = await response.json();
+        this.threadId = data.id;
+      },
+
+      async runPrompt() {
+        if (this.isRunning) return;
+        this.isRunning = true;
+        this.responseHtml = "";
+        this.preview_html = "";
+
+        if (!this.threadId) {
+          await this.createThread();
+        }
+
+        const prompt = this.prompt;
+        const template = this.templateEditor.getValue();
+        const data = this.dataEditor.getValue();
+
+        const fullPrompt = `${prompt}\n\n{{ template_here }}\n${template}\n\n{{ data_here }}\n${data}`;
+
+        try {
+          // Add message to thread
+          await fetch("/wp-json/gpt/v1/add-message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              thread_id: this.threadId,
+              content: fullPrompt,
+            }),
+          });
+
+          // Create run
+          const runResponse = await fetch("/wp-json/gpt/v1/create-run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ thread_id: this.threadId }),
+          });
+          const runData = await runResponse.json();
+          this.runId = runData.run_data.id;
+
+          // Poll for run completion
+          await this.pollRunStatus();
+
+          // Fetch messages
+          const messagesResponse = await fetch(
+            `/wp-json/gpt/v1/list-messages?thread_id=${this.threadId}`
+          );
+          const messagesData = await messagesResponse.json();
+
+          // Process the response and update the results
+          this.processResponse(messagesData);
+        } catch (error) {
+          console.error("Error:", error);
+          this.responseHtml =
+            '<p class="text-red-500">An error occurred. Please try again.</p>';
+        } finally {
+          this.isRunning = false;
+        }
+      },
+
+      async pollRunStatus() {
+        while (true) {
+          const statusResponse = await fetch(
+            `/wp-json/gpt/v1/check-run-status?thread_id=${this.threadId}&run_id=${this.runId}`
+          );
+          const statusData = await statusResponse.json();
+          if (statusData.status === "completed") {
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      },
+
+      processResponse(response) {
+        if (response.data && response.data.length > 0) {
+          const assistantMessage = response.data.find(
+            (msg) => msg.role === "assistant"
+          );
+          if (
+            assistantMessage &&
+            assistantMessage.content &&
+            assistantMessage.content.length > 0
+          ) {
+            const markdownContent = assistantMessage.content[0].text.value;
+            this.responseHtml = marked.parse(markdownContent);
+            this.$nextTick(() => {
+              Prism.highlightAll();
+              this.extractPreviewHtml();
+            });
+          }
+        }
+      },
+
+      extractPreviewHtml() {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = this.responseHtml;
+
+        // First, try to find pre elements with class 'language-html'
+        let htmlElements = tempDiv.querySelectorAll("pre.language-html");
+
+        // If no elements found, try looking for code elements with class 'language-html'
+        if (htmlElements.length === 0) {
+          htmlElements = tempDiv.querySelectorAll("code.language-html");
+        }
+
+        if (htmlElements.length > 0) {
+          const lastHtmlElement = htmlElements[htmlElements.length - 1];
+
+          // If it's a pre element, look for a code child
+          if (lastHtmlElement.tagName.toLowerCase() === "pre") {
+            const codeElement = lastHtmlElement.querySelector("code");
+            if (codeElement) {
+              this.preview_html = codeElement.innerHTML;
+            } else {
+              this.preview_html = lastHtmlElement.innerHTML;
+            }
+          } else {
+            // If it's already a code element, use its content directly
+            this.preview_html = lastHtmlElement.innerHTML;
+          }
+
+          // Clean up the HTML by removing extra newlines and spaces
+          this.preview_html = this.preview_html.replace(/^\s+|\s+$/g, "");
+        } else {
+          this.preview_html = "<p>No HTML preview available</p>";
+        }
+
+        // Decode HTML entities
+        const textArea = document.createElement("textarea");
+        textArea.innerHTML = this.preview_html;
+        this.preview_html = textArea.value;
+      },
+    };
+  }
+</script>

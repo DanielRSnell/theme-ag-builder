@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] {
+  display: none;
+}
+
+.agnostic-preview-window {
+  /* Existing styles */
+
+  /* Remove webkit scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.agnostic-preview-window::-webkit-scrollbar {
+  display: none !important; /* Safari and Chrome */
+}
+
+#product-branding {
+  @apply hidden;
+}
+
+#saving-form {
+  @apply bg-transparent;
+}
+
+.product-logo {
+  @apply flex items-center justify-center;
+}
+
+.data-active {
+  @apply !bg-warning/10 !ring-warning/70 !ring-1 transition-all duration-200 ease-in-out;
+}
+
+.data-hover {
+  @apply !bg-info/10 !ring-info/70 !ring-1 transition-all duration-200 ease-in-out;
+}
+
+.stroke-primary {
+  @apply stroke-current text-primary;
+}
+
+@layer utilities {
+  .content-auto {
+    content-visibility: auto;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  #previewiframe {
+    @apply overflow-x-hidden overflow-y-auto;
+  }
+}

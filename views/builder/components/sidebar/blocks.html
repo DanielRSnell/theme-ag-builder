@@ -1,0 +1,379 @@
+<!-- File: sidebar/base.html -->
+
+<div
+  x-show="activeTab === 'blocks'"
+  x-data="elementCoreSidebar()"
+  class="flex flex-col w-full h-full p-4 bg-base-200"
+>
+  <!-- START: sidebar/elements/tag-selector/base.html -->
+  {{ include('@components/sidebar/elements/tag-selector/base.html') }}
+  <!-- END: sidebar/elements/tag-selector/base.html -->
+
+  <div class="flex-grow mb-4">
+    <!-- START: sidebar/elements/inner-text/base.html -->
+    {{ include('@components/sidebar/elements/inner-text/base.html') }}
+    <!-- END: sidebar/elements/inner-text/base.html -->
+
+    <!-- START: sidebar/elements/image-controls/base.html -->
+    {{ include('@components/sidebar/elements/image-controls/base.html') }}
+    <!-- END: sidebar/elements/image-controls/base.html -->
+
+    <!-- START: sidebar/elements/link-controls/base.html -->
+    {{ include('@components/sidebar/elements/link-controls/base.html') }}
+    <!-- END: sidebar/elements/link-controls/base.html -->
+
+    <p
+      x-show="!['Headings', 'Typography', 'Image', 'Link'].includes(elementGroup)"
+      class="text-xs text-gray-500"
+    >
+      No specific controls for this element type.
+    </p>
+  </div>
+
+  <div class="mt-auto">
+    <button
+      class="w-full btn btn-primary btn-sm"
+      @click="applyChanges()"
+    >
+      Apply Changes
+    </button>
+  </div>
+
+  <!-- START: sidebar/elements/media-modal/base.html -->
+  {{ include('@components/sidebar/elements/media-modal/base.html') }}
+  <!-- END: sidebar/elements/media-modal/base.html -->
+</div>
+
+<script>
+ function elementCoreSidebar() {
+  return {
+    ...baseState(),
+    ...imageState(),
+    ...linkState(),
+    ...elementGroupState(),
+    ...eventHandlers(),
+    ...elementManipulation(),
+  };
+}
+
+function baseState() {
+  return {
+    selectedTag: "",
+    elementGroup: "",
+    innerHTML: "",
+    isMediaSelectorOpen: false,
+  };
+}
+
+function imageState() {
+  return {
+    selectedImage: {
+      id: "",
+      url: "",
+      alt: "",
+    },
+    imageSettings: {
+      aspectRatio: "",
+      customAspectRatio: "",
+      objectPosition: "",
+      loading: "",
+      stretch: false,
+    },
+  };
+}
+
+function linkState() {
+  return {
+    linkHref: "",
+    linkText: "",
+  };
+}
+
+function elementGroupState() {
+  return {
+    elementGroups: {
+      Headings: ["h1", "h2", "h3", "h4", "h5", "h6"],
+      Typography: ["p", "span", "strong", "em", "blockquote", "pre", "code"],
+      Layout: [
+        "div",
+        "section",
+        "aside",
+        "header",
+        "footer",
+        "main",
+        "nav",
+        "article",
+      ],
+      Link: ["a"],
+      Image: ["img", "picture", "figure"],
+      Media: ["video", "audio", "iframe"],
+    },
+    getAvailableTags() {
+      return this.elementGroups[this.elementGroup] || [];
+    },
+  };
+}
+
+function eventHandlers() {
+  return {
+    init() {
+      this.setupEventListeners();
+      // this.$watch('innerHTML', (value) => {
+      //   console.log('innerHTML changed:', value, value !== this.innerHTML, this.innerHTML);
+      //     onBlockInnerHTMLChange(value);
+      // });
+      Alpine.store('preview').reloadTailwindComilers();
+      this.$watch('selectedTag', (value) => {
+        if (value !== this.selectedTag) {
+        onChangeElTag(value);
+        }
+      });
+    },
+    setupEventListeners() {
+      Alpine.effect(() => {
+        const activeSelectors = Alpine.store("preview").activeSelectors;
+        if (activeSelectors && activeSelectors.length > 0) {
+          const lastSelector = activeSelectors[activeSelectors.length - 1];
+          this.syncWithStore(lastSelector);
+          this.updateElementGroup(lastSelector);
+        }
+      });
+      window.addEventListener(
+        "message",
+        this.handleMediaMessage.bind(this),
+        false
+      );
+    },
+    handleMediaMessage(event) {
+      if (event.data && event.data.type === "media_message") {
+        const data = event.data.data;
+        console.log("Received media_message:", data);
+        this.selectedImage = {
+          id: data.id,
+          url: data.url,
+          alt: data.alt || "",
+        };
+        this.closeMediaSelector();
+        this.updateImageElement();
+      }
+    },
+  };
+}
+
+function elementManipulation() {
+  return {
+    syncWithStore(selector) {
+      this.resetState();
+      this.loadElementProperties(selector);
+    },
+    resetState() {
+      this.innerHTML = "";
+      this.linkHref = "";
+      this.linkText = "";
+      this.selectedImage = { id: "", url: "", alt: "" };
+      this.imageSettings = {
+        aspectRatio: "",
+        customAspectRatio: "",
+        objectPosition: "",
+        loading: "",
+        stretch: false,
+      };
+    },
+    updateElementGroup(selector) {
+      const element = Alpine.store("preview").doc.querySelector(selector);
+      if (element) {
+        this.selectedTag = element.tagName.toLowerCase();
+        this.elementGroup =
+          Object.entries(this.elementGroups).find(([_, tags]) =>
+            tags.includes(this.selectedTag)
+          )?.[0] || "";
+      }
+    },
+    loadElementProperties(selector) {
+      const element = Alpine.store("preview").doc.querySelector(selector);
+      const previewElement = document
+        .getElementById("agnostic-preview-window")
+        .contentDocument.querySelector(selector);
+
+      if (!element || !previewElement) return;
+
+      if (
+        this.elementGroup === "Headings" ||
+        this.elementGroup === "Typography"
+      ) {
+        this.innerHTML = element.innerHTML || "";
+      } else if (this.elementGroup === "Image") {
+        this.selectedImage = {
+          id: element.dataset.id || "",
+          url: previewElement.src || "",
+          alt: element.alt || "",
+        };
+        this.imageSettings = {
+          aspectRatio: this.getAspectRatio(element),
+          customAspectRatio: this.getCustomAspectRatio(element),
+          objectPosition: this.getObjectPosition(element),
+          loading: element.loading || "",
+          stretch:
+            element.classList.contains("w-full") &&
+            element.classList.contains("h-full"),
+        };
+      } else if (this.elementGroup === "Link") {
+        this.linkHref = element.href || "";
+        this.linkText = element.textContent || "";
+      }
+    },
+    getAspectRatio(element) {
+      if (element.classList.contains("aspect-auto")) return "aspect-auto";
+      if (element.classList.contains("aspect-square")) return "aspect-square";
+      if (element.classList.contains("aspect-video")) return "aspect-video";
+      const customAspect = Array.from(element.classList).find((cls) =>
+        cls.startsWith("aspect-[")
+      );
+      return customAspect ? "custom" : "";
+    },
+    getCustomAspectRatio(element) {
+      const customAspect = Array.from(element.classList).find((cls) =>
+        cls.startsWith("aspect-[")
+      );
+      return customAspect ? customAspect.match(/aspect-\[(.*?)\]/)[1] : "";
+    },
+    getObjectPosition(element) {
+      const positions = [
+        "object-center",
+        "object-top",
+        "object-bottom",
+        "object-left",
+        "object-right",
+      ];
+      return positions.find((pos) => element.classList.contains(pos)) || "";
+    },
+    openMediaSelector() {
+      this.isMediaSelectorOpen = true;
+      
+      this.$refs.wpMediaIframe.contentWindow.wp.media.editor.open();
+    },
+    closeMediaSelector() {
+      this.isMediaSelectorOpen = false;
+    },
+    updateImageElement() {
+      const activeSelectors = Alpine.store("preview").activeSelectors;
+      const lastSelector = activeSelectors[activeSelectors.length - 1];
+      const element = Alpine.store("preview").doc.querySelector(lastSelector);
+      if (element) {
+        const imgId = this.selectedImage.id;
+        element.setAttribute(
+          "src",
+          "{" +
+            "%" +
+            " set image = get_image(" +
+            imgId +
+            ") %" +
+            "} " +
+            "{" +
+            "{" +
+            " image|towebp " +
+            "}" +
+            "}"
+        );
+        element.setAttribute(
+          "srcset",
+          "{" + "{" + " image.srcset|towebp " + "}" + "}"
+        );
+        element.setAttribute("alt", "{" + "{" + " image.alt " + "}" + "}");
+        element.dataset.id = imgId;
+        this.updateImageClass();
+      }
+    },
+    updateImageClass() {
+      const activeSelectors = Alpine.store("preview").activeSelectors;
+      const lastSelector = activeSelectors[activeSelectors.length - 1];
+      const element = Alpine.store("preview").doc.querySelector(lastSelector);
+      if (element) {
+        const aspectClass =
+          this.imageSettings.aspectRatio === "custom"
+            ? `aspect-[${this.imageSettings.customAspectRatio}]`
+            : this.imageSettings.aspectRatio;
+        const classes = [
+          aspectClass,
+          this.imageSettings.objectPosition,
+          this.imageSettings.stretch ? "w-full h-full" : "",
+        ].filter(Boolean);
+
+        element.classList.remove(
+          "aspect-auto",
+          "aspect-square",
+          "aspect-video",
+          "object-center",
+          "object-top",
+          "object-bottom",
+          "object-left",
+          "object-right"
+        );
+        element.classList.remove(
+          ...Array.from(element.classList).filter((cls) =>
+            cls.startsWith("aspect-[")
+          )
+        );
+
+        console.log("Updated image classes current:", classes);
+   
+        Alpine.store('editors').debouncedTimberRender();
+      }
+    },
+    updateImageAlt() {
+      const activeSelectors = Alpine.store("preview").activeSelectors;
+      const lastSelector = activeSelectors[activeSelectors.length - 1];
+      const element = Alpine.store("preview").doc.querySelector(lastSelector);
+      if (element) {
+        element.setAttribute(
+          "alt",
+          "{{get_image(" + this.selectedImage.id + ").alt}}"
+        );
+        console.log("Updated image alt:", this.selectedImage.alt);
+      }
+    },
+    updateImageLoading() {
+      const activeSelectors = Alpine.store("preview").activeSelectors;
+      const lastSelector = activeSelectors[activeSelectors.length - 1];
+      const element = Alpine.store("preview").doc.querySelector(lastSelector);
+      if (element) {
+        element.loading = this.imageSettings.loading;
+        console.log("Updated image loading:", this.imageSettings.loading);
+      }
+    },
+    removeImage() {
+      console.log("Removing image");
+      this.selectedImage = { id: "", url: "", alt: "" };
+      const activeSelectors = Alpine.store("preview").activeSelectors;
+      const lastSelector = activeSelectors[activeSelectors.length - 1];
+      const element = Alpine.store("preview").doc.querySelector(lastSelector);
+      if (element) {
+        element.removeAttribute("src");
+        element.removeAttribute("srcset");
+        element.removeAttribute("alt");
+        element.removeAttribute("data-id");
+        element.className = "";
+      }
+    },
+    applyChanges() {
+      const activeSelectors = Alpine.store("preview").activeSelectors;
+      const lastSelector = activeSelectors[activeSelectors.length - 1];
+      const element = Alpine.store("preview").doc.querySelector(lastSelector);
+      if (!element) return;
+
+      if (
+        this.elementGroup === "Headings" ||
+        this.elementGroup === "Typography"
+      ) {
+        element.innerHTML = this.innerHTML;
+      } else if (this.elementGroup === "Image") {
+        this.updateImageElement();
+      } else if (this.elementGroup === "Link") {
+        element.href = this.linkHref;
+        element.textContent = this.linkText;
+      }
+      console.log("Changes applied for element group:", this.elementGroup);
+    },
+  };
+}
+</script>

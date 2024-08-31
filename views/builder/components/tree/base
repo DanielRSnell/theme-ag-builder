@@ -1,0 +1,441 @@
+<div
+  id="tree-drawer"
+  class="h-screen fixed right-0 top-0 bg-base-300 text-base-content p-2 mt-[var(--maintoolbar-height)] transistion-all duration-300 ease-in-out"
+  x-data="treeData"
+  x-init="init()"
+  x-bind:class="tab === 'Code' ? 'hidden' : 'w-[375px]'"
+>
+  <div class="flex flex-col h-full"
+>
+    <!-- Tab Selector -->
+    <div class="w-full mb-4 join join-horizontal" x-show="tab !== 'Code'">
+      <button
+        class="flex-1 join-item btn btn-sm tooltip tooltip-bottom"
+        :class="{ 'btn-active': activeTab === 'structure' }"
+        @click="activeTab = 'structure'"
+        data-tip="Structure"
+      >
+        <i class="ri-layout-2-line"></i>
+      </button>
+      <button
+        class="flex-1 join-item btn btn-sm tooltip tooltip-bottom"
+        :class="{ 'btn-active': activeTab === 'dataInspector' }"
+        @click="activeTab = 'dataInspector'"
+        data-tip="Data Inspector"
+      >
+        <i class="ri-database-2-line"></i>
+      </button>
+      <button
+        class="flex-1 join-item btn btn-sm tooltip tooltip-bottom"
+        :class="{ 'btn-active': activeTab === 'queries' }"
+        @click="activeTab = 'queries'"
+        data-tip="Queries"
+      >
+        <i class="ri-search-line"></i>
+      </button>
+      <button
+        class="flex-1 join-item btn btn-sm tooltip tooltip-bottom"
+        :class="{ 'btn-active': activeTab === 'tabs' }"
+        @click="activeTab = 'tabs'"
+        data-tip="Tabs"
+      >
+        <i class="ri-window-line"></i>
+      </button>
+    </div>
+
+    <!-- Content Area -->
+    <div class="flex-grow overflow-hidden">
+      <!-- Structure Panel -->
+      <div
+        x-show="activeTab === 'structure'"
+        class="h-full"
+      >
+        <div class="flex h-full">
+          <div
+            x-bind:class="tab === 'Code' ? 'w-full' : 'w-1/6'"
+            class=" rounded-lg border-[0.3px] border-base-content/20 backdrop-blur-md h-[95%] z-50"
+          >
+            {{ include("builder/components/tree/quick-insert.html") }}
+          </div>
+
+          <div class="w-5/6 pr-2" x-show="tab !== 'Code'">
+            <div
+              id="agnostic-tree-container"
+              class="relative flex flex-col h-[95%] font-sans text-sm"
+            >
+              <div
+                class="absolute top-0 left-0 right-0 flex items-center justify-between p-2 px-4"
+              >
+                <div
+                  class="text-sm font-semibold"
+                  x-on:click="window.openHTML"
+                >
+                  Structure
+                </div>
+                <div>
+                  <button
+                    @click="foldAll()"
+                    class="btn btn-sm btn-ghost"
+                    title="Fold All"
+                  >
+                    <i class="ri-arrow-up-s-line"></i>
+                  </button>
+                  <button
+                    @click="unfoldAll()"
+                    class="btn btn-sm btn-ghost"
+                    title="Unfold All"
+                  >
+                    <i class="ri-arrow-down-s-line"></i>
+                  </button>
+                </div>
+              </div>
+              <div
+                id="agnostic-tree-wrap"
+                class="scrollbar-hide absolute h-[calc(100%-2.5rem)] w-full inset-0 px-4 py-4 overflow-y-auto overflow-x-hidden rounded-lg bg-base mt-10"
+                @mouseover.away="removeHighlightItems"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Inspector -->
+      <div
+        x-show="activeTab === 'dataInspector'"
+        class="h-full"
+      >
+        <!-- @todo: Add Data Inspector component here -->
+        <div class="h-[95%] p-2">
+          {# Monaco JSON Editor for Data #}
+          {{ include("@components/tree/editor/data.html") }}
+        </div>
+      </div>
+
+      <!-- Queries -->
+      <div
+        x-show="activeTab === 'queries'"
+        class="h-full"
+      >
+        <!-- @todo: Add Queries component here -->
+        <div class="h-full">
+          {{ include("@components/tree/editor/queries.html") }}
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div
+        x-show="activeTab === 'tabs'"
+        class="h-full"
+      >
+        <!-- @todo: Add Tabs component here -->
+        <div class="p-4">
+          <h2 class="mb-4 text-lg font-semibold">Tabs</h2>
+          <p>Tabs content will go here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("alpine:init", () => {
+    Alpine.data("treeData", () => ({
+      activeTab: "structure",
+      commonAttributes: [
+        "id",
+        "class",
+        "src",
+        "alt",
+        "href",
+        "type",
+        "value",
+        "name",
+        "placeholder",
+        "title",
+        "aria-label",
+        "aria-describedby",
+        "role",
+        "tabindex",
+      ],
+      init() {
+        window.AgnosticTree = this;
+      },
+      setContext() {
+        window.contextEditor.setValue(Alpine.store("editors").context);
+      },
+      onTreeHover(selector) {
+        window.hoverElementById(selector);
+      },
+      onTreeClick(selector) {
+        console.log("Tree Clicked", selector);
+        window.selectElementById(selector);
+      },
+      onHighlightTreeElement() {
+        console.log("Highlighting tree elements");
+
+        // Get active selectors from the store
+        const activeSelectors = Alpine.store("preview").activeSelectors;
+        console.log("Active selectors:", activeSelectors);
+
+        // Remove all existing highlights
+        document.querySelectorAll(".tree-box").forEach((el) => {
+          el.classList.remove("data-active", "data-hover");
+        });
+
+        let firstActiveElement = null;
+
+        // Highlight active elements and scroll to the last one
+        activeSelectors.forEach((selector, index) => {
+          const treeItem = document.querySelector(
+            `.tree-box[data-selector="${selector.split("#").join("")}"]`
+          );
+          console.log("Tree item:", treeItem, "Selector:", selector);
+
+          if (treeItem) {
+            treeItem.classList.add("data-active");
+            // If class added, console.log the element
+            if (treeItem.classList.contains("data-active")) {
+              console.log("Tree Class Updated", treeItem);
+              // this.unfoldAll();
+            }
+
+            // Check if this is the last item in the array
+            if (index === activeSelectors.length - 1) {
+              const treeContainer =
+                document.getElementById("agnostic-tree-wrap");
+              if (treeContainer) {
+                treeContainer.scrollTo({
+                  top: treeItem.offsetTop - treeContainer.offsetTop,
+                  behavior: "smooth",
+                });
+                console.log(
+                  `Scrolled to last active element: ${treeItem.dataset.selector}`
+                );
+              } else {
+                console.warn("Tree container not found");
+              }
+            }
+          } else {
+            console.warn(`Tree item with selector "${selector}" not found`);
+          }
+        });
+
+        console.log("Tree highlight update complete");
+      },
+      checkActiveItems() {
+        const activeTreeBox = document.querySelectorAll(".data-active");
+        return activeTreeBox.length === 0;
+      },
+      checkHoverItems() {
+        const activeTreeBox = document.querySelectorAll(".data-active");
+        return activeTreeBox.length === 0;
+      },
+      removeActiveItems() {
+        const activeTreeBox = document.querySelectorAll(".data-active");
+        activeTreeBox.forEach((el) => el.classList.remove("data-active"));
+      },
+      removeHighlightItems() {
+        const activeTreeBox = document.querySelectorAll(".data-hover");
+        activeTreeBox.forEach((el) => el.classList.remove("data-hover"));
+        window.AgnosticPreviewStore.handleHoveredSelector("", false);
+      },
+      onHighlightHoverTreeElement(selector, isTree) {
+        document
+          .querySelectorAll(".tree-box")
+          .forEach((el) => el.classList.remove("data-hover"));
+
+        const treeItem = document.querySelector(
+          `.tree-box[data-selector="${selector}"]`
+        );
+        if (treeItem) {
+          treeItem.classList.add("data-hover");
+          if (!isTree && !this.checkHoverItems) {
+            const treeContainer = document.getElementById("agnostic-tree-wrap");
+            treeContainer.scrollTo({
+              top: treeItem.offsetTop - treeContainer.offsetTop,
+              behavior: "smooth",
+            });
+          }
+        }
+      },
+      generateTreeHTML() {
+        const doc = Alpine.store("preview").doc;
+        const mainContent = doc.querySelector("#agnostic-content");
+        if (mainContent) {
+          const treeHTML = this.generateTreeHTMLFromElement(
+            mainContent.children
+          );
+          this.transitionTreeHTML(treeHTML);
+        }
+      },
+      transitionTreeHTML(treeHTML) {
+        const treeContainer = document.getElementById("agnostic-tree-wrap");
+
+        console.log("OLD CONTENT", treeContainer);
+        console.log("NEW CONTENT", treeHTML);
+
+        // Get the outerHTML wrapper of treeContainer
+        const treeContainerOuterHTML = treeContainer.outerHTML;
+        // clone the treeContainer
+        const treeContainerClone = treeContainer.cloneNode(true);
+
+        // Set the innerHTML of the clone to the new treeHTML
+        treeContainerClone.innerHTML = treeHTML;
+
+        Alpine.morph(treeContainer, treeContainerClone.outerHTML, {
+          updating(fromEl, toEl) {
+            // Check if both elements exist and have classList before comparing
+            if (fromEl && toEl && fromEl.classList && toEl.classList) {
+              // If the old element had the 'hidden' class but the new one doesn't, add it back
+              if (
+                fromEl.classList.contains("hidden") &&
+                !toEl.classList.contains("hidden")
+              ) {
+                toEl.classList.add("hidden");
+              }
+
+              // Check for data-active class
+              if (
+                fromEl.classList.contains("data-active") &&
+                !toEl.classList.contains("data-active")
+              ) {
+                toEl.classList.add("data-active");
+              }
+            }
+          },
+          lookahead: true,
+        });
+      },
+      generateTreeHTMLFromElement(elements, depth = 0, parentSelector = "") {
+        let html = "";
+        for (let i = 0; i < elements.length; i++) {
+          const element = elements[i];
+          const tagName = element.tagName.toLowerCase();
+          const id = element.id ? `#${element.id}` : "";
+          const classes = Array.from(element.classList)
+            .map((c) => `.${c}`)
+            .join("");
+          const nthChild = `:nth-child(${i + 1})`;
+          const selector = element.id;
+          const label = element.getAttribute("data-gjs-name") || tagName;
+          const displayText = "";
+          const hasChildren = element.children.length > 0;
+          const hasUncommonAttributes = Array.from(element.attributes).some(
+            (attr) =>
+              !this.commonAttributes.includes(attr.name) &&
+              !attr.name.startsWith("data-")
+          );
+          const isHidden = element.classList.contains("hidden");
+
+          html += `
+              <div class="tree-item" style="padding-left: 1px" data-selector="${selector}">
+                  <div class="flex items-center py-[4px] group">
+                      <span class="w-4 text-xs mr-1 text-base-content flex-shrink-0 ${
+                        hasChildren ? "cursor-pointer" : ""
+                      }"
+                          @click="${hasChildren ? "toggleTreeChildren" : ""}">
+                          ${
+                            hasChildren
+                              ? '<i class="ri-arrow-right-s-line"></i>'
+                              : ""
+                          }
+                      </span>
+                      <div class="flex items-center justify-between flex-grow px-2 py-1 rounded cursor-pointer tree-box bg-base-100 hover:bg-base-200"
+                        data-selector="${selector}"
+
+                        @click.stop="window.AgnosticTree.onTreeClick('${selector}')">
+                        <div class="flex items-center">
+                            <span class="mr-2 text-base-content">${this.getIcon(
+                              tagName
+                            )}</span>
+                            <div class="mr-2 badge badge-sm">
+                                <span class="font-semibold uppercase">${tagName}</span>
+                            </div>
+                            <span class="capitalize text-accent">${displayText}</span>
+                        </div>
+                        <div class="flex items-center">
+                            ${
+                              hasUncommonAttributes
+                                ? '<i class="w-4 h-4 mr-1 text-info ri-html5-line"></i>'
+                                : ""
+                            }
+                            <i class="ri-eye-line h-4 w-4 cursor-pointer ${
+                              isHidden ? "text-error" : "text-warning"
+                            }"
+                            @click.stop="togglePreviewElementVisibility('${selector}')"></i>
+                        </div>
+                    </div>
+                  </div>
+                  ${
+                    hasChildren
+                      ? `
+                      <div class="ml-2 children">
+                          ${this.generateTreeHTMLFromElement(
+                            element.children,
+                            depth + 1,
+                            selector
+                          )}
+                      </div>
+                  `
+                      : ""
+                  }
+              </div>
+            `;
+        }
+        return html;
+      },
+      getIcon(tagName) {
+        return '<i class="ri-code-line"></i>';
+      },
+      toggleTreeChildren(event) {
+        const treeItem = event.target.closest(".tree-item");
+        const childrenContainer = treeItem.querySelector(".children");
+
+        if (childrenContainer) {
+          childrenContainer.classList.toggle("hidden");
+          const arrowIcon = treeItem.querySelector("span > i");
+          arrowIcon.classList.toggle("ri-arrow-right-s-line");
+          arrowIcon.classList.toggle("ri-arrow-down-s-line");
+        }
+      },
+      foldAll() {
+        document
+          .querySelectorAll("#agnostic-tree-wrap .children")
+          .forEach((child) => {
+            child.classList.add("hidden");
+            const arrow = child.parentElement.querySelector("span > i");
+            if (arrow) {
+              arrow.classList.remove("ri-arrow-down-s-line");
+              arrow.classList.add("ri-arrow-right-s-line");
+            }
+          });
+      },
+      unfoldAll() {
+        document
+          .querySelectorAll("#agnostic-tree-wrap .children")
+          .forEach((child) => {
+            child.classList.remove("hidden");
+            const arrow = child.parentElement.querySelector("span > i");
+            if (arrow) {
+              arrow.classList.remove("ri-arrow-right-s-line");
+              arrow.classList.add("ri-arrow-down-s-line");
+            }
+          });
+      },
+      togglePreviewElementVisibility(selector) {
+        const preview = document.getElementById("agnostic-preview");
+        const previewDoc =
+          preview.contentDocument || preview.contentWindow.document;
+        const element = previewDoc.querySelector(selector);
+        if (element) {
+          element.classList.toggle("hidden");
+          const icon = document.querySelector(
+            `[data-selector="${selector}"] .ri-eye-line`
+          );
+          icon.classList.toggle("text-warning");
+          icon.classList.toggle("text-error");
+        }
+      },
+    }));
+  });
+</script>

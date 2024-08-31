@@ -1,0 +1,46 @@
+<script>
+     function getIcon(tagName) {
+        const icons = {
+            html: 'ti-html5', body: 'ti-layout', header: 'ti-layout-header', nav: 'ti-menu', main: 'ti-layout-width-full',
+            section: 'ti-layout-accordion-separated', article: 'ti-layout-column3', aside: 'ti-layout-sidebar-right',
+            footer: 'ti-layout-footer', div: 'ti-layout-grid2', h1: 'ti-text', h2: 'ti-text', h3: 'ti-text', h4: 'ti-text',
+            h5: 'ti-text', h6: 'ti-text', p: 'ti-paragraph', span: 'ti-text', a: 'ti-link', 
+            strong: 'ti-bold', // Added icon for strong element
+            em: 'ti-italic',
+            blockquote: 'ti-quote-right', code: 'ti-code', pre: 'ti-clipboard', ul: 'ti-list-ol', ol: 'ti-list', li: 'ti-minus',
+            dl: 'ti-view-list', dt: 'ti-view-list-alt', dd: 'ti-paragraph', table: 'ti-layout-grid3', thead: 'ti-layout-column3',
+            tbody: 'ti-layout-accordion-list', tr: 'ti-layout-line-solid', th: 'ti-layout-column1', td: 'ti-layout-grid1',
+            form: 'ti-layout-grid3', fieldset: 'ti-layout-slider', legend: 'ti-layout-tab', label: 'ti-tag', input: 'ti-pencil-alt',
+            textarea: 'ti-paragraph', select: 'ti-menu-alt', option: 'ti-list', button: 'ti-control-play', img: 'ti-image',
+            figure: 'ti-gallery', figcaption: 'ti-comment-alt', video: 'ti-video-camera', audio: 'ti-music-alt',
+            source: 'ti-video-clapper', track: 'ti-control-forward', details: 'ti-layout-accordion-separated',
+            summary: 'ti-layout-tab', dialog: 'ti-layout-width-default', script: 'ti-shortcode', noscript: 'ti-close',
+            style: 'ti-css3', iframe: 'ti-layout-slider-alt', object: 'ti-package', embed: 'ti-plug', template: 'ti-layout-grid4-alt',
+            slot: 'ti-layout-grid3-alt', svg: 'ti-vector', path: 'ti-line-double', rect: 'ti-layout-width-default',
+            circle: 'ti-target', line: 'ti-minus', polyline: 'ti-sharethis', polygon: 'ti-star'
+        };
+        return `<i class="ti ${icons[tagName] || 'ti-code'}"></i>`;
+    }
+
+    function getTagColor(tagName) {
+        const colors = {
+            html: 'text-red-500', body: 'text-red-400', header: 'text-blue-500', nav: 'text-blue-400', main: 'text-blue-300',
+            section: 'text-blue-400', article: 'text-blue-300', aside: 'text-blue-200', footer: 'text-blue-500',
+            div: 'text-green-400', h1: 'text-purple-500', h2: 'text-purple-400', h3: 'text-purple-300', h4: 'text-purple-200',
+            h5: 'text-purple-100', h6: 'text-purple-100', p: 'text-yellow-400', span: 'text-yellow-300', a: 'text-cyan-400',
+            strong: 'text-yellow-500', em: 'text-yellow-500', blockquote: 'text-yellow-200', code: 'text-green-300',
+            pre: 'text-green-200', ul: 'text-orange-400', ol: 'text-orange-300', li: 'text-orange-200', dl: 'text-orange-400',
+            dt: 'text-orange-300', dd: 'text-orange-200', table: 'text-indigo-400', thead: 'text-indigo-300',
+            tbody: 'text-indigo-200', tr: 'text-indigo-100', th: 'text-indigo-300', td: 'text-indigo-100', form: 'text-red-400',
+            fieldset: 'text-red-300', legend: 'text-red-200', label: 'text-red-100', input: 'text-orange-400',
+            textarea: 'text-orange-300', select: 'text-orange-300', option: 'text-orange-200', button: 'text-orange-500',
+            img: 'text-pink-400', figure: 'text-pink-300', figcaption: 'text-pink-200', video: 'text-pink-500',
+            audio: 'text-pink-500', source: 'text-pink-300', track: 'text-pink-200', details: 'text-teal-400',
+            summary: 'text-teal-300', dialog: 'text-teal-500', script: 'text-gray-500', noscript: 'text-gray-400',
+            iframe: 'text-fuchsia-400', object: 'text-fuchsia-300', embed: 'text-fuchsia-300', template: 'text-lime-400',
+            slot: 'text-lime-300', svg: 'text-green-500', path: 'text-green-400', rect: 'text-green-300', circle: 'text-green-300',
+            line: 'text-green-300', polyline: 'text-green-300', polygon: 'text-green-300'
+        };
+        return colors[tagName] || 'text-gray-300';
+    }
+</script>

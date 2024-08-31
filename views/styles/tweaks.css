@@ -1,0 +1,325 @@
+:where(body) {
+  --editor-50: #f8fafc;
+  --editor-100: #f1f5f9;
+  --editor-200: #e2e8f0;
+  --editor-300: #cbd5e1;
+  --editor-400: #94a3b8;
+  --editor-500: #64748b;
+  --editor-600: #475569;
+  --editor-700: #334155;
+  --editor-800: #1e293b;
+  --editor-900: #0f172a;
+  --editor-950: #0e0e0e;
+  --editor-success: #4ade80;
+  --editor-warning: #ecc94b;
+  --editor-error: #f56565;
+  --editor-info: #63b3ed;
+}
+
+body {
+  --maintoolbar-height: 50px;
+  --sidepanel-width: 375px;
+  --color1: var(--editor-800);
+  --color2: var(--editor-950);
+  --color-background: var(--editor-700);
+  --color-green: var(--editor-success);
+  --color-yellow: var(--editor-warning);
+  --color-accents: var(--editor-600);
+  --color-interface-bg: var(--editor-950);
+  --color1-100er-30: #177a87;
+  --color-grey: var(--editor-400);
+  --color-100grey: var(--editor-300);
+  --color-grey-2: #a9abcb;
+  --color-interface-bg-900: var(--color2) !important;
+  --color-interface-bg-dark: var(--color2) !important;
+  --color-prop-icons: var(--editor-300);
+  --scrollable-areas-voffset: 165px;
+  --sidepenl-width: 350px;
+  --maintoolbar-height: 45px;
+}
+
+body > .winbox {
+  background: var(--color2) !important;
+}
+
+body {
+  background: var(--editor-200);
+}
+
+.tree-context-menu {
+  display: none !important;
+}
+
+[x-cloak] {
+  display: none;
+}
+
+[data-active-item] {
+  background: rgb(254, 239, 137, 0.5);
+  border: 1px solid rgb(254, 239, 137);
+  color: rgb(253, 224, 70);
+  z-index: -1;
+}
+
+#responsive-toolbar a:hover,
+#responsive-toolbar a.is-active {
+  color: var(--editor-warning) !important;
+}
+
+#lc-html-editor-window {
+  z-index: 100 !important;
+}
+
+#primary-tools {
+  z-index: 299;
+}
+
+#responsive-toolbar {
+  right: 44% !important;
+  gap: 0.5rem;
+  display: flex;
+  // row
+  flex-direction: row;
+  // center
+  justify-content: center;
+  // center
+  align-items: center;
+}
+
+#primary-tools {
+  background: var(--color-interface-bg) !important;
+  border-radius: 0.5rem !important;
+  padding: 10px !important;
+  // Animation
+  animation: slide-in 0.5s ease-in-out;
+}
+
+#primary-tools:hover {
+  background: var(--editor-700) !important;
+}
+
+#primary-tools a {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-weight: semibold;
+}
+
+#primary-tools br {
+  display: none !important; /* Prevents the line break caused by <br> */
+}
+
+#loader {
+  z-index: 9999999 !important;
+}
+
+.ace-tooltip {
+  position: fixed; /* Use fixed positioning to keep it at the top right */
+  top: 0; /* Align to the top */
+  right: 0; /* Align to the right */
+  width: 500px; /* Set the width */
+  max-height: 350px; /* Set the maximum height */
+  overflow-y: scroll; /* Enable vertical scrolling if content exceeds max-height */
+  pointer-events: auto; /* Keep pointer events enabled */
+  margin: 0; /* Reset any margin */
+  display: block; /* Keep display as block */
+}
+
+.items-browser#basic-blocks block {
+  display: flex; /* Use flexbox */
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
+  float: left;
+  width: calc(50% - 10px);
+  padding: 5px;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  height: 35px;
+  margin: 5px;
+  border-radius: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.5s;
+}
+
+.items-browser div > block {
+  transition: all ease-in-out 0.3s;
+  background: var(--color-interface-bg-900);
+}
+
+.items-browser div > block:hover {
+  background: var(--editor-700);
+}
+
+/* Editor Style Changes */
+/* #maintoolbar {
+  display: none;
+} */
+
+#primary-tools {
+  display: none;
+}
+
+/* #previewiframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+} */
+
+/* #sidepanel {
+  height: 100vh;
+} */
+
+/* .wb-header {
+  display: none;
+}
+
+.wb-body {
+  margin: 0 !important;
+  top: 0 !important;
+}
+
+#tree-window {
+  height: 100vh !important;
+  top: 0 !important;
+} */
+
+/* #winbox-1 {
+  opacity: 0.3;
+  transition: opacity 0.5s ease-in-out;
+  z-index: 999;
+} */
+
+/* #sidepanel {
+  z-index: 998 !important;
+} */
+
+/* #winbox-1:hover {
+  opacity: 1;
+}
+
+// focus
+#winbox-1:focus {
+  opacity: 1;
+} */
+
+/* .wb-header {
+  display: none;
+} */
+
+.wb-body {
+  /* border-radius: 1rem; */
+}
+
+.wb-body {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -moz-overflow: -moz-scrollbars-none;
+}
+
+.wb-body::-webkit-scrollbar {
+  display: none;
+}
+
+/* lc-dynamic-element {
+  display: block;
+} */
+
+#query-container {
+  display: flex;
+  position: fixed;
+  bottom: 2%;
+  right: 10%;
+  z-index: 999;
+  background: #000; /* Vercel-inspired dark background */
+  border-radius: 0.5rem;
+  flex-direction: column;
+  padding: 0.5rem; /* Slightly more padding for better spacing */
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Subtle shadow for depth */
+}
+
+#query-header {
+  font-weight: bold;
+  font-size: 0.6rem;
+  color: var(--editor-300); /* Light grey for text */
+  padding: 0.5rem 1rem; /* Padding for better spacing */
+  border-bottom: 1px solid #333; /* Divider line */
+}
+
+#query-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#query-items > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #1a1a1a; /* Slightly lighter dark background */
+  border-radius: 0.2rem;
+  padding: 0.5rem 1rem;
+  color: #eaeaea; /* Light grey for text */
+  font-size: 0.86rem; /* Slightly larger font size */
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+#query-items > div:hover {
+  background: #333; /* Darker background on hover */
+  boder-radius: 0.5rem;
+  transform: translateY(-2px); /* Slight lift on hover */
+}
+
+#query-items > div:active {
+  background: #444; /* Even darker background on active */
+  border-radius: 0.5rem;
+  transform: translateY(0); /* Reset lift on active */
+}
+
+#query-items > div:hover {
+  background: #333; /* Darker background on hover */
+  transform: translateY(-2px); /* Slight lift on hover */
+}
+
+#query-items > div:active {
+  background: #444; /* Even darker background on active */
+  transform: translateY(0); /* Reset lift on active */
+}
+
+#maintoolbar {
+  z-index: 999;
+}
+
+.wb-max {
+  display: none;
+}
+
+.wb-full {
+  display: none;
+}
+
+#lc-html-editor-window {
+  z-index: 999;
+}
+
+#winbox-1 {
+  z-index: 500 !important;
+}
+
+.wb-close {
+  display: none;
+}
+
+.winbox.min {
+  display: none !important;
+}
+
+#sidepanel input[type="number"] {
+  min-width: 50px;
+  padding-inline: 1rem !important;
+}

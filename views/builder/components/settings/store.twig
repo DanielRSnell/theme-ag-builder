@@ -1,0 +1,218 @@
+<script>
+function settingsManager() {
+  return {
+    settings_tab: 'Routing',
+    activeTab: 'front_page',
+    isLoading: true,
+    errorMessage: '',
+    nonce: "{{ function('wp_create_nonce', 'wp_rest') }}",
+    tabs: ['front_page', 'blog_index', 'global_partials', 'post_types', 'archives', 'search_results', 'error_page', 'terms', 'singles'],
+    tabLabels: {
+      front_page: 'Front Page',
+      blog_index: 'Blog Index',
+      global_partials: 'Global Partials',
+      post_types: 'Post Types',
+      archives: 'Archives',
+      search_results: 'Search',
+      error_page: '404',
+      terms: 'Terms',
+      singles: 'Singles'
+    },
+    routes: {},
+    viewOptions: {},
+    postTypeOptions: {},
+    archiveTypeOptions: {},
+    taxonomyOptions: {},
+    termOptions: {},
+    postOptions: {},
+    initializationPromise: null,
+
+    init() {
+      if (this.initializationPromise) {
+        return this.initializationPromise;
+      }
+      this.initializationPromise = this._initialize();
+      return this.initializationPromise;
+    },
+
+    _initialize() {
+      this.isLoading = true;
+      this.errorMessage = '';
+      return this.hydrateOptions()
+        .then(() => {
+          this.isLoading = false;
+        })
+        .catch((error) => {
+          this.errorMessage = 'Failed to initialize routing manager. Please try again.';
+          console.error('Initialization error:', error);
+          this.isLoading = false;
+        });
+    },
+
+    hydrateOptions() {
+      return Promise.all([
+        this.fetchData('/wp-json/agnostic/v1/routing'),
+        this.fetchData('/wp-json/agnostic/v1/routing/form-data')
+      ])
+      .then(([routingData, formData]) => {
+        this.routes = routingData;
+        this.viewOptions = formData.views;
+        this.postTypeOptions = formData.post_types;
+        this.archiveTypeOptions = formData.archive_types;
+        this.taxonomyOptions = formData.taxonomies;
+        this.termOptions = formData.terms;
+        this.postOptions = formData.posts;
+
+        ['global_partials', 'post_types', 'archives', 'terms', 'singles'].forEach((key) => {
+          if (!Array.isArray(this.routes[key])) {
+            this.routes[key] = [];
+          }
+        });
+
+        this.routes.singles.forEach((single) => {
+          single.filteredPosts = [];
+          single.allPosts = [];
+          single.postSearch = '';
+          single.showPostOptions = false;
+        });
+
+        console.log('All options hydrated successfully');
+      })
+      .catch((error) => {
+        console.error('Error hydrating options:', error);
+        throw error;
+      });
+    },
+
+    fetchData(url) {
+      return fetch(url, {
+        headers: {
+          'X-WP-Nonce': this.nonce
+        }
+      })
+      .then(response => {
+        if (!response.ok) throw new Error(`Failed to fetch data from ${url}`);
+        return response.json();
+      });
+    },
+
+    updateBlogIndex() {
+      this.updateRoute('blog_index');
+    },
+
+    updateRoute(routeType) {
+      this.isLoading = true;
+      this.errorMessage = '';
+      fetch('/wp-json/agnostic/v1/routing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-WP-Nonce': this.nonce
+        },
+        body: JSON.stringify(this.routes)
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to update route');
+        console.log(`${routeType} updated successfully`);
+        return this.hydrateOptions();
+      })
+      .catch(error => {
+        console.error('Error updating route:', error);
+        this.errorMessage = `Failed to update ${this.tabLabels[routeType]}. Please try again.`;
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
+    },
+
+    addItem(routeType, item) {
+      if (!Array.isArray(this.routes[routeType])) {
+        this.routes[routeType] = [];
+      }
+      if (routeType === 'singles') {
+        item.filteredPosts = [];
+        item.allPosts = [];
+        item.postSearch = '';
+        item.showPostOptions = false;
+      }
+      this.routes[routeType].push(item);
+      this.updateRoute(routeType);
+    },
+
+    removeItem(routeType, index) {
+      if (Array.isArray(this.routes[routeType])) {
+        this.routes[routeType].splice(index, 1);
+        this.updateRoute(routeType);
+      }
+    },
+
+    updatePostOptions(index) {
+      const postType = this.routes.singles[index].post_type;
+      if (postType) {
+        let endpoint = postType === 'post' ? 'posts' : postType === 'page' ? 'pages' : postType;
+        this.fetchData(`/wp-json/wp/v2/${endpoint}?per_page=100`)
+          .then(posts => {
+            this.routes.singles[index].filteredPosts = posts.map((post) => ({ id: post.id, title: post.title.rendered }));
+            this.routes.singles[index].allPosts = [...this.routes.singles[index].filteredPosts];
+          })
+          .catch(error => {
+            console.error('Error fetching posts:', error);
+            this.routes.singles[index].filteredPosts = [];
+            this.routes.singles[index].allPosts = [];
+          });
+      } else {
+        this.routes.singles[index].filteredPosts = [];
+        this.routes.singles[index].allPosts = [];
+      }
+      this.routes.singles[index].post = '';
+      this.routes.singles[index].postSearch = '';
+    },
+
+    filterPosts(index) {
+      const search = this.routes.singles[index].postSearch.toLowerCase();
+      this.routes.singles[index].filteredPosts = this.routes.singles[index].allPosts.filter((post) => post.title.toLowerCase().includes(search));
+    },
+
+    showPostOptions(index) {
+      this.routes.singles[index].showPostOptions = true;
+    },
+
+    hidePostOptions(index) {
+      setTimeout(() => {
+        this.routes.singles[index].showPostOptions = false;
+      }, 200);
+    },
+
+    selectPost(index, post) {
+      this.routes.singles[index].post = post.id;
+      this.routes.singles[index].postSearch = post.title;
+      this.hidePostOptions(index);
+      this.updateRoute('singles');
+    },
+
+    getViewLabel(viewId) {
+      return this.viewOptions[viewId] || 'Unknown View';
+    },
+
+    getPostTypeLabel(postType) {
+      return this.postTypeOptions[postType] || 'Unknown Post Type';
+    },
+
+    getArchiveTypeLabel(archiveType) {
+      return this.archiveTypeOptions[archiveType] || 'Unknown Archive Type';
+    },
+
+    getTaxonomyLabel(taxonomy) {
+      return this.taxonomyOptions[taxonomy] || 'Unknown Taxonomy';
+    },
+
+    getTermLabel(termId) {
+      return this.termOptions[termId] || 'Unknown Term';
+    },
+
+    getPostLabel(postId) {
+      return this.postOptions[postId] || 'Unknown Post';
+    }
+  };
+}
+</script>

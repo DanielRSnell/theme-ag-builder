@@ -1,0 +1,10 @@
+<!-- START: sidebar/tag-selector/base.html -->
+{# active selectors need to update after the render #}
+<div class="flex items-center justify-center mb-4">
+  <select x-model="selectedTag" class="w-full max-w-xs mx-auto uppercase select select-bordered select-sm">
+    <template x-for="tag in getAvailableTags()" :key="tag">
+      <option :value="tag" x-text="tag" class="capitlaize"></option>
+    </template>
+  </select>
+</div>
+<!-- END: sidebar/tag-selector/base.html -->

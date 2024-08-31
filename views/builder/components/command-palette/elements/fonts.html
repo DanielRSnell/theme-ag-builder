@@ -1,0 +1,302 @@
+{% extends 'builder/frame.twig' %}
+{% block frameContent %}
+<div x-data="fontManager()"  class="flex flex-col h-full p-6 rounded-lg shadow-lg bg-base-200">
+  <div class="w-full mb-4">
+    <div class="flex items-center justify-between">
+      <div class="tabs tabs-boxed">
+        <a class="tab" :class="{ 'tab-active': activeTab === 'all' }" @click="setActiveTab('all')">All</a>
+        <a class="tab" :class="{ 'tab-active': activeTab === 'installed' }" @click="setActiveTab('installed')">Installed (<span x-text="installedFontsCount"></span>)</a>
+        <a class="tab" :class="{ 'tab-active': activeTab === 'designated' }" @click="setActiveTab('designated')">Designated (<span x-text="designatedFontsCount"></span>)</a>
+      </div>
+      <div class="form-control">
+        <input type="text" x-model="searchTerm" @input="searchFonts" placeholder="Search fonts" class="w-full max-w-xs input input-sm input-bordered" />
+      </div>
+    </div>
+  </div>
+
+  <div class="flex-grow overflow-y-auto">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <template x-for="font in paginatedFonts" :key="font.name">
+        <div class="shadow-xl card bg-base-100" :class="{ 'ring-2 ring-primary': font.designation }">
+          <div class="card-body">
+            <h3 class="card-title" x-text="font.name"></h3>
+            <div class="my-2 text-lg font-semibold" :style="getFontStyle(font)" x-text="'The quick brown fox jumps over the lazy dog'"></div>
+            <div class="mt-auto space-y-2">
+              <template x-if="!font.installed">
+                <button @click="downloadFont(font)" class="btn btn-sm btn-primary">Download</button>
+              </template>
+              <template x-if="font.installed">
+                <div class="form-control">
+                  <label class="cursor-pointer label">
+                    <span class="label-text">Designation:</span>
+                    <select x-model="font.designation" @change="updateFontDesignation(font)" class="select select-bordered select-sm">
+                      <option value="">None</option>
+                      <option value="sans">Sans</option>
+                      <option value="serif">Serif</option>
+                      <option value="mono">Mono</option>
+                      <option value="display">Display</option>
+                      <option value="body">Body</option>
+                    </select>
+                  </label>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+  
+  <div class="mt-4 btn-group">
+    <button class="btn" @click="prevPage" :disabled="currentPage === 1">«</button>
+    <button class="btn">Page <span x-text="currentPage"></span></button>
+    <button class="btn" @click="nextPage" :disabled="currentPage === totalPages">»</button>
+  </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+<script>
+function fontManager() {
+  return {
+    allFonts: [],
+    displayedFonts: [],
+    searchTerm: "",
+    currentPage: 1,
+    totalPages: 1,
+    perPage: 12,
+    rest_url: "/wp-json/agnostic/v1",
+    rest_nonce: "{{ function('wp_create_nonce', 'wp_rest') }}",
+    tw_font_config: {},
+    tw_font_css: "",
+    activeTab: "all",
+
+    async init() {
+      if (window.parent) {
+        window.parent.FontManager = this;
+      }
+      await this.fetchAllFonts();
+      this.loadInstalledFonts();
+      this.updateDisplayedFonts();
+      await this.updateTailwindFonts();
+    },
+
+    refreshTW() {
+      window.refreshTW();
+    },
+
+    async fetchAllFonts() {
+      try {
+        const response = await fetch(`${this.rest_url}/fonts`, {
+          headers: { "X-WP-Nonce": this.rest_nonce }
+        });
+        const data = await response.json();
+        this.allFonts = data.fonts.map(font => ({
+          ...font,
+          loaded: false
+        }));
+      } catch (error) {
+        console.error("Error fetching all fonts:", error);
+      }
+    },
+
+    loadInstalledFonts() {
+      const installedFonts = this.allFonts.filter(font => font.installed);
+      if (installedFonts.length > 0) {
+        WebFont.load({
+          custom: {
+            families: installedFonts.map(font => font.name),
+            urls: [`${this.rest_url}/fonts/css`]
+          },
+          fontactive: (familyName) => {
+            const font = this.allFonts.find(f => f.name === familyName);
+            if (font) {
+              font.loaded = true;
+            }
+          },
+          fontinactive: (familyName) => {
+            console.error(`Failed to load font: ${familyName}`);
+          }
+        });
+      }
+    },
+
+    async updateTailwindFonts() {
+      try {
+        const response = await fetch(`${this.rest_url}/fonts/tailwind`, {
+          headers: { "X-WP-Nonce": this.rest_nonce }
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch Tailwind fonts');
+        }
+        const data = await response.json();
+        this.tw_font_config = data.tailwind_config;
+        this.tw_font_css = data.font_css;
+        this.updateFontStyle();
+      } catch (error) {
+        console.error("Error updating Tailwind fonts:", error);
+      }
+    },
+
+    updateFontStyle() {
+      let styleElement = document.getElementById('designated-fonts-style');
+      if (!styleElement) {
+        styleElement = document.createElement('style');
+        styleElement.id = 'designated-fonts-style';
+        document.head.appendChild(styleElement);
+      }
+      styleElement.textContent = this.tw_font_css;
+    },
+
+    getFontStyle(font) {
+      if (font.loaded) {
+        return `font-family: '${font.name}', sans-serif;`;
+      } else {
+        this.loadFont(font);
+        return '';
+      }
+    },
+
+    loadFont(font) {
+      if (!font.loaded) {
+        WebFont.load({
+          google: {
+            families: [font.name]
+          },
+          fontactive: (familyName) => {
+            const loadedFont = this.allFonts.find(f => f.name === familyName);
+            if (loadedFont) {
+              loadedFont.loaded = true;
+            }
+            this.updateDisplayedFonts();
+          },
+          fontinactive: (familyName) => {
+            console.error(`Failed to load font: ${familyName}`);
+          }
+        });
+      }
+    },
+
+    async downloadFont(font) {
+      try {
+        const response = await fetch(`${this.rest_url}/fonts/download`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-WP-Nonce': this.rest_nonce
+          },
+          body: JSON.stringify({
+            font_name: font.name,
+            font_url: font.url
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to download font');
+        }
+
+        font.installed = true;
+        await this.loadFont(font);
+        this.updateDisplayedFonts();
+        await this.updateTailwindFonts();
+      } catch (error) {
+        console.error("Error downloading font:", error);
+      }
+    },
+
+    async updateFontDesignation(font) {
+      try {
+        const response = await fetch(`${this.rest_url}/fonts/designations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-WP-Nonce': this.rest_nonce
+          },
+          body: JSON.stringify({
+            fontName: font.name,
+            newDesignation: font.designation
+          })
+        });
+
+        if (response.ok) {
+          await this.updateTailwindFonts();
+          await this.fetchAllFonts();
+          this.updateDisplayedFonts();
+          this.parentTailwindRefresh();
+        } else {
+          throw new Error('Failed to update font designation');
+        }
+      } catch (error) {
+        console.error("Error updating font designation:", error);
+      }
+    },
+
+    parentTailwindRefresh() {
+      if (window.parent && window.parent.refreshTailwind) {
+        window.parent.refreshTailwind();
+      }
+    },
+
+    searchFonts() {
+      this.currentPage = 1;
+      this.updateDisplayedFonts();
+    },
+
+    updateDisplayedFonts() {
+      let filteredFonts = this.allFonts;
+
+      if (this.activeTab === 'installed') {
+        filteredFonts = filteredFonts.filter(font => font.installed);
+      } else if (this.activeTab === 'designated') {
+        filteredFonts = filteredFonts.filter(font => font.designation);
+      }
+
+      if (this.searchTerm) {
+        const searchLower = this.searchTerm.toLowerCase();
+        filteredFonts = filteredFonts.filter(font =>
+          font.name.toLowerCase().includes(searchLower)
+        );
+      }
+
+      this.displayedFonts = filteredFonts;
+      this.updateTotalPages();
+    },
+
+    setActiveTab(tab) {
+      this.activeTab = tab;
+      this.currentPage = 1;
+      this.updateDisplayedFonts();
+    },
+
+    prevPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--;
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++;
+      }
+    },
+
+    updateTotalPages() {
+      this.totalPages = Math.ceil(this.displayedFonts.length / this.perPage);
+    },
+
+    get paginatedFonts() {
+      const start = (this.currentPage - 1) * this.perPage;
+      const end = start + this.perPage;
+      return this.displayedFonts.slice(start, end);
+    },
+
+    get installedFontsCount() {
+      return this.allFonts.filter(font => font.installed).length;
+    },
+
+    get designatedFontsCount() {
+      return this.allFonts.filter(font => font.designation).length;
+    }
+  };
+}
+</script>
+{% endblock %}

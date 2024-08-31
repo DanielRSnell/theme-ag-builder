@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html x-cloak {{ site.language_attributes }}>
+  <head x-ref="head">
+    {# UTF-8 charset #}
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+    {# Ensure proper UTF-8 encoding for CSS #}
+    <style>
+      @charset "UTF-8";
+    </style>
+
+    {% do action('get_header') %}
+    {{ function('wp_head') }}
+
+    {#
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@alpinejs/morph@3.x.x/dist/cdn.min.js"
+    ></script>
+    #}
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    {{ include('builder/render/tw/compile.html') }}
+
+    {% do action('wp_builder_head') %}
+  </head>
+
+  <body id="agnostic-builder" class="{{ body_class }}" x-ref="body">
+    <div id="builder-header">{% do action('editor_header') %}</div>
+    <main id="agnostic-content">{{ template|raw }}</main>
+
+    {{ function('wp_footer') }}
+    {% do action('get_footer') %}
+    <div id="builder-footer">{% do action('editor_footer') %}</div>
+    {{ function('echo_tailwind_autocomplete_scripts') }}
+    <script>
+      ;(function () {
+        const highlighter = {
+          hoverElement: null,
+          currentHoveredElement: null,
+          highlightContainer: null,
+          isOptionKeyPressed: false,
+          agnosticContent: null,
+      
+          init() {
+            this.agnosticContent = document.getElementById('agnostic-content')
+            if (!this.agnosticContent) {
+              console.error('#agnostic-content not found')
+              return
+            }
+            this.createStyles()
+            this.createHighlightContainer()
+            this.createHighlightElements()
+            this.addEventListeners()
+            this.setupMessageListener()
+            this.disableLinks()
+            this.exposeFunctions()
+          },
+      
+          createStyles() {
+            const style = document.createElement('style')
+            style.textContent = `
+                         .highlight-container {
+                           position: fixed;
+                           top: 0;
+                           left: 0;
+                           width: 100%;
+                           height: 100%;
+                           pointer-events: none;
+                           z-index: 9999;
+                         }
+                         .ag-hover-highlight, .ag-selected-highlight {
+                           position: absolute;
+                           pointer-events: none;
+                           transition: all 0.2s ease-out;
+                         }
+                         .ag-hover-highlight {
+                           border: 2px solid #b19cd9;
+                           background-color: rgba(177, 156, 217, 0.1);
+                           box-shadow: 0 0 10px rgba(177, 156, 217, 0.3);
+                         }
+                         .ag-selected-highlight {
+                           border: 2px solid #6a5acd;
+                           background-color: rgba(106, 90, 205, 0.1);
+                           box-shadow: 0 0 10px rgba(106, 90, 205, 0.3);
+                         }
+                         .ag-element-info {
+                           position: absolute;
+                           top: -25px;
+                           left: 0;
+                           background-color: #6a5acd;
+                           color: white;
+                           padding: 2px 5px;
+                           font-size: 12px;
+                           border-radius: 3px;
+                           transition: all 0.2s ease-out;
+                         }
+                       `
+            document.head.appendChild(style)
+          },
+      
+          createHighlightContainer() {
+            this.highlightContainer = document.createElement('div')
+            this.highlightContainer.className = 'highlight-container'
+            document.body.appendChild(this.highlightContainer)
+          },
+      
+          createHighlightElements() {
+            this.hoverElement = this.createHighlightElement('ag-hover-highlight')
+            this.highlightContainer.appendChild(this.hoverElement)
+          },
+      
+          createHighlightElement(className) {
+            const highlightEl = document.createElement('div')
+            highlightEl.className = className
+            const infoEl = document.createElement('div')
+            infoEl.className = 'ag-element-info'
+            highlightEl.appendChild(infoEl)
+            return highlightEl
+          },
+      
+          addEventListeners() {
+            document.addEventListener('mouseover', this.handleMouseOver.bind(this))
+            document.addEventListener('mouseout', this.handleMouseOut.bind(this))
+            document.addEventListener('click', this.handleClick.bind(this))
+            window.addEventListener('scroll', this.handleScroll.bind(this))
+            window.addEventListener('resize', this.handleResize.bind(this))
+          },
+      
+          setupMessageListener() {
+            window.addEventListener('message', (event) => {
+              if (event.data.type === 'optionKeyState') {
+                this.isOptionKeyPressed = event.data.pressed
+                if (this.isOptionKeyPressed) {
+                  this.removeAllHighlights()
+                } else {
+                  this.updateAllHighlights()
+                }
+              }
+            })
+          },
+      
+          disableLinks() {
+            this.agnosticContent.addEventListener(
+              'click',
+              (event) => {
+                const link = event.target.closest('a')
+                if (link) {
+                  event.preventDefault()
+                  console.log('Link click prevented:', link.href)
+                }
+              },
+              true
+            )
+          },
+      
+          handleMouseOver(event) {
+            if (this.isOptionKeyPressed) return
+            const targetElement = event.target.closest('[id]')
+            if (targetElement && this.agnosticContent.contains(targetElement) && !this.isSelected(targetElement)) {
+              this.hoverElementById(targetElement.id)
+            }
+          },
+      
+          handleMouseOut(event) {
+            if (this.isOptionKeyPressed) return
+            if (!event.relatedTarget || !this.agnosticContent.contains(event.relatedTarget)) {
+              this.hideHighlight(this.hoverElement)
+              this.currentHoveredElement = null
+            }
+          },
+      
+          handleClick(event) {
+            if (this.isOptionKeyPressed) return
+            const targetElement = event.target.closest('[id]')
+            if (targetElement && this.agnosticContent.contains(targetElement)) {
+              this.toggleSelection(targetElement, event.metaKey || event.ctrlKey)
+            }
+          },
+      
+          handleScroll() {
+            if (!this.isOptionKeyPressed) {
+              this.updateAllHighlights()
+            }
+          },
+      
+          handleResize() {
+            if (!this.isOptionKeyPressed) {
+              this.updateAllHighlights()
+            }
+          },
+      
+          moveHighlight(highlightEl, targetEl) {
+            const rect = targetEl.getBoundingClientRect()
+            Object.assign(highlightEl.style, {
+              left: `${rect.left}px`,
+              top: `${rect.top}px`,
+              width: `${rect.width}px`,
+              height: `${rect.height}px`,
+              opacity: '1',
+              transform: 'scale(1.05)'
+            })
+      
+            setTimeout(() => {
+              highlightEl.style.transform = 'scale(1)'
+            }, 150)
+      
+            this.adjustInfoPosition(highlightEl, rect)
+          },
+      
+          hideHighlight(highlightEl) {
+            Object.assign(highlightEl.style, {
+              opacity: '0',
+              transform: 'scale(0.95)'
+            })
+          },
+      
+          isSelected(element) {
+            const activeSelectors = window.parent.Alpine.store('preview').activeSelectors
+            return activeSelectors.some((selector) => element.matches(selector))
+          },
+      
+          toggleSelection(element, isCmdPressed = false) {
+            window.parent.Alpine.store('editors').elementSelected(element, !this.isSelected(element), isCmdPressed)
+            if (!isCmdPressed) {
+              this.scrollToElement(element)
+            }
+          },
+      
+          updateAllHighlights() {
+            if (this.isOptionKeyPressed) return
+            if (this.currentHoveredElement) {
+              this.updateElementInfo(this.hoverElement, this.currentHoveredElement)
+              this.moveHighlight(this.hoverElement, this.currentHoveredElement)
+            }
+            this.updateSelectedHighlights()
+          },
+      
+          updateSelectedHighlights() {
+            if (this.isOptionKeyPressed) return
+            const activeSelectors = window.parent.Alpine.store('preview').activeSelectors
+            const existingHighlights = this.highlightContainer.querySelectorAll('.ag-selected-highlight')
+      
+            existingHighlights.forEach((highlight) => {
+              if (!activeSelectors.some((selector) => highlight.targetElement && highlight.targetElement.matches(selector))) {
+                highlight.remove()
+              }
+            })
+      
+            activeSelectors.forEach((selector) => {
+              const element = this.agnosticContent.querySelector(selector)
+              if (element) {
+                let highlightEl = Array.from(existingHighlights).find((h) => h.targetElement === element)
+                if (!highlightEl) {
+                  highlightEl = this.createHighlightElement('ag-selected-highlight')
+                  highlightEl.targetElement = element
+                  this.highlightContainer.appendChild(highlightEl)
+                }
+                this.updateElementInfo(highlightEl, element)
+                this.moveHighlight(highlightEl, element)
+              }
+            })
+          },
+      
+          updateElementInfo(highlightEl, targetEl) {
+            const infoEl = highlightEl.querySelector('.ag-element-info')
+            const tagName = targetEl.tagName.toLowerCase()
+            infoEl.textContent = tagName.charAt(0).toUpperCase() + tagName.slice(1)
+          },
+      
+          adjustInfoPosition(highlightEl, rect) {
+            const infoEl = highlightEl.querySelector('.ag-element-info')
+            if (rect.top < infoEl.offsetHeight + 5) {
+              infoEl.style.top = '5px'
+            } else {
+              infoEl.style.top = '-25px'
+            }
+          },
+      
+          scrollToElement(element) {
+            if (!element) return
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          },
+      
+          selectElementById(id) {
+            if (this.isOptionKeyPressed) return
+            const element = this.agnosticContent.querySelector(`#${id}`)
+            if (element) {
+              this.toggleSelection(element)
+            }
+          },
+      
+          hoverElementById(id) {
+            if (this.isOptionKeyPressed) return
+            const element = this.agnosticContent.querySelector(`#${id}`)
+            if (element) {
+              if (this.currentHoveredElement !== element) {
+                this.hideHighlight(this.hoverElement)
+                this.currentHoveredElement = element
+                this.updateElementInfo(this.hoverElement, element)
+                this.moveHighlight(this.hoverElement, element)
+              }
+            }
+          },
+      
+          resetPositions() {
+            if (!this.isOptionKeyPressed) {
+              this.updateAllHighlights()
+            }
+          },
+      
+          removeAllHighlights() {
+            this.highlightContainer.querySelectorAll('.ag-selected-highlight').forEach((highlight) => {
+              highlight.remove()
+            })
+            this.hideHighlight(this.hoverElement)
+            this.currentHoveredElement = null
+          },
+      
+          exposeFunctions() {
+            window.parent.resetHighlighterPositions = this.resetPositions.bind(this)
+            window.parent.selectElementById = this.selectElementById.bind(this)
+            window.parent.hoverElementById = this.hoverElementById.bind(this)
+            window.parent.removeHighlights = this.removeAllHighlights.bind(this)
+          }
+        }
+      
+        highlighter.init()
+      
+        window.parent.postMessage({ type: 'highlighterReady' }, '*')
+        console.log('Agnostic-themed highlighter initialized')
+        setTimeout(() => window.parent.refreshTailwind(), 1000)
+      })()
+    </script>
+    <script>
+      document.addEventListener('keydown', (e) => {
+        // Capture and forward all key events
+        e.preventDefault() // Prevent default browser behavior
+        window.parent.postMessage(
+          {
+            type: 'keydown',
+            keyEvent: {
+              key: e.key,
+              code: e.code,
+              ctrlKey: e.ctrlKey,
+              metaKey: e.metaKey,
+              altKey: e.altKey,
+              shiftKey: e.shiftKey
+            }
+          },
+          '*'
+        )
+      })
+      
+      window.parent.postMessage({ type: 'iframeReady' }, '*')
+      
+      console.log('Iframe key event handler initialized. Forwarding all key events to parent.')
+    </script>
+  </body>
+</html>

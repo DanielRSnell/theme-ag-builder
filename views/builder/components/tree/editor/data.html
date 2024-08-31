@@ -1,0 +1,369 @@
+{#
+<div
+  id="context-manager"
+  class="flex flex-col h-full"
+>
+  <div class="flex items-center justify-between p-2 rounded-t-lg bg-base-100">
+    <span class="text-xs font-semibold">Context Data</span>
+    <div class="flex space-x-2">
+      <i class="text-xs ri-at-line"></i>
+      <i class="text-xs ri-key-line"></i>
+      <i class="text-xs ri-hashtag"></i>
+      <i class="text-xs ri-price-tag-3-line"></i>
+    </div>
+  </div>
+  <div
+    class="flex-grow overflow-y-auto bg-black border rounded-b-lg border-base-content/20"
+  >
+    <div
+      id="context-editor"
+      class="w-full h-full overflow-y-auto"
+    ></div>
+  </div>
+</div>
+#}
+
+<div
+  x-data="contextExplorer()"
+  class="p-4"
+>
+  <div class="mb-4">
+    <input
+      x-model="search"
+      @input="performSearch"
+      type="text"
+      placeholder="Search keys..."
+      class="w-full max-w-xs input input-bordered"
+    />
+  </div>
+
+  <div class="flex items-center justify-between mb-4">
+    <div class="text-sm breadcrumbs">
+      <ul>
+        <template
+          x-for="(crumb, index) in breadcrumbs"
+          :key="index"
+        >
+          <li>
+            <a
+              @click.prevent="navigateTo(index)"
+              x-text="crumb"
+              class="cursor-pointer"
+            ></a>
+          </li>
+        </template>
+      </ul>
+    </div>
+  </div>
+
+  <div
+    id="data-explorer"
+    class="overflow-y-auto max-h-[75vh] overflow-x-hidden"
+  >
+    <template x-if="search.length > 0">
+      <div>
+        <template
+          x-for="(group, path) in searchResults"
+          :key="path"
+        >
+          <div class="mb-4">
+            <h3
+              x-text="path"
+              class="mb-2 text-lg font-bold"
+            ></h3>
+            <template
+              x-for="item in group"
+              :key="item.key"
+            >
+              <div class="mb-2 slide-in-right">
+                <div class="flex items-center">
+                  <div
+                    @click="toggleItem(item, path)"
+                    class="flex items-center justify-between flex-grow p-2 rounded-lg cursor-pointer bg-base-200 hover:bg-base-300"
+                  >
+                    <span
+                      x-text="item.key"
+                      class="font-semibold"
+                    ></span>
+                    <div class="flex items-center">
+                      <span
+                        x-text="item.type"
+                        class="mr-2 text-sm text-base-content/70"
+                      ></span>
+                      <span
+                        x-text="item.type === 'object' || item.type === 'array' ? '▶' : ''"
+                        class="text-sm"
+                      ></span>
+                    </div>
+                  </div>
+                  <button
+                    @click="copyTwigCode(item, path)"
+                    class="ml-2 btn btn-ghost btn-xs"
+                    title="Copy Twig code"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <template x-if="item.active">
+                  <div class="pl-4 mt-1">
+                    <pre
+                      x-text="JSON.stringify(item.value, null, 2)"
+                      class="p-2 text-sm rounded bg-base-100"
+                    ></pre>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </template>
+    <template x-if="search.length === 0">
+      <template
+        x-for="item in currentLevelItems"
+        :key="item.key"
+      >
+        <div class="mb-2">
+          <div class="flex items-center">
+            <div
+              @click="toggleItem(item)"
+              class="flex items-center justify-between flex-grow p-2 rounded-lg cursor-pointer bg-base-200 hover:bg-base-300"
+            >
+              <span
+                x-text="item.key"
+                class="font-semibold"
+              ></span>
+              <div class="flex items-center">
+                <span
+                  x-text="item.type"
+                  class="mr-2 text-sm text-base-content/70"
+                ></span>
+                <span
+                  x-text="item.type === 'object' || item.type === 'array' ? '▶' : ''"
+                  class="text-sm"
+                ></span>
+              </div>
+            </div>
+            <button
+              @click="copyTwigCode(item)"
+              class="ml-2 btn btn-ghost btn-xs"
+              title="Copy Twig code"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
+            </button>
+          </div>
+          <template x-if="item.active">
+            <div class="pl-4 mt-1">
+              <pre
+                x-text="JSON.stringify(item.value, null, 2)"
+                class="p-2 text-sm rounded bg-base-100"
+              ></pre>
+            </div>
+          </template>
+        </div>
+      </template>
+    </template>
+  </div>
+</div>
+
+<style>
+  #data-explorer::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+
+<script>
+  function contextExplorer() {
+    return {
+      context: {},
+    currentLevelItems: [],
+    breadcrumbs: ["Root"],
+    search: "",
+    searchResults: {},
+    activeItem: null,
+    hasInitialized: false,
+
+    init() {
+        if (this.hasInitialized) {
+            console.log("Context Manager has already been initialized.");
+            return;
+        }
+
+        this.updateContext();
+        this.$watch("$store.builder.state", () => {
+            this.updateContext();
+        });
+
+        this.hasInitialized = true;
+    },
+
+      updateContext() {
+        this.context = JSON.parse(
+          JSON.stringify(Alpine.store("builder").state)
+        );
+        this.breadcrumbs = ["Root"];
+        this.updateCurrentLevel();
+      },
+
+      updateCurrentLevel() {
+        let currentObj = this.context;
+        for (let i = 1; i < this.breadcrumbs.length; i++) {
+          currentObj = currentObj[this.breadcrumbs[i]];
+        }
+        this.currentLevelItems = this.flattenContext(currentObj);
+        this.activeItem = null;
+      },
+
+      flattenContext(obj) {
+        if (!obj || typeof obj !== "object") return [];
+        return Object.entries(obj).map(([key, value]) => {
+          const type = Array.isArray(value) ? "array" : typeof value;
+          return {
+            key,
+            value,
+            type,
+            active: false,
+          };
+        });
+      },
+
+      performSearch() {
+        if (this.search.length === 0) {
+          this.searchResults = {};
+          return;
+        }
+
+        const searchLower = this.search.toLowerCase();
+        const results = {};
+
+        const searchInObject = (obj, path = "Root") => {
+          for (const [key, value] of Object.entries(obj)) {
+            const currentPath = path === "Root" ? key : `${path}.${key}`;
+            if (key.toLowerCase().includes(searchLower)) {
+              if (!results[path]) results[path] = [];
+              results[path].push({
+                key,
+                value,
+                type: Array.isArray(value) ? "array" : typeof value,
+                active: false,
+              });
+            }
+            if (typeof value === "object" && value !== null) {
+              searchInObject(value, currentPath);
+            }
+          }
+        };
+
+        searchInObject(this.context);
+        this.searchResults = results;
+      },
+
+      toggleItem(item, path = "") {
+        if (item.type === "object" || item.type === "array") {
+          if (path) {
+            this.breadcrumbs = ["Root", ...path.split("."), item.key];
+          } else {
+            this.breadcrumbs.push(item.key);
+          }
+          this.updateCurrentLevel();
+          this.search = "";
+          this.searchResults = {};
+        } else {
+          if (this.activeItem) {
+            this.activeItem.active = false;
+          }
+          item.active = !item.active;
+          this.activeItem = item.active ? item : null;
+        }
+      },
+
+      navigateTo(index) {
+        if (index === 0) {
+          this.breadcrumbs = ["Root"];
+        } else {
+          this.breadcrumbs = this.breadcrumbs.slice(0, index + 1);
+        }
+        this.updateCurrentLevel();
+        this.search = "";
+        this.searchResults = {};
+      },
+
+      copyTwigCode(item, path = "") {
+        const fullPath = path
+          ? `${path}.${item.key}`
+          : [...this.breadcrumbs.slice(1), item.key].join(".");
+        const twigCode = this.getTwigCode(fullPath.split("."), item.type);
+        navigator.clipboard
+          .writeText(twigCode)
+          .then(() => {
+            alert("Twig code copied to clipboard!");
+          })
+          .catch((err) => {
+            console.error("Failed to copy: ", err);
+          });
+      },
+
+      getTwigCode(path, type) {
+        const variablePath = path.join(".");
+        let twigCode = "";
+
+        if (type === "array") {
+          const loopVariable = path[path.length - 1];
+          twigCode =
+            "{" +
+            "% for item in " +
+            variablePath +
+            " %" +
+            "}\n  {" +
+            "{ item }" +
+            "}\n{" +
+            "% endfor %" +
+            "}";
+        } else if (this.isWithinArray(path)) {
+          twigCode = "{" + "{ item." + path[path.length - 1] + " }" + "}";
+        } else {
+          twigCode = "{" + "{ " + variablePath + " }" + "}";
+        }
+
+        return twigCode;
+      },
+
+      isWithinArray(path) {
+        let currentObj = this.context;
+        for (let i = 0; i < path.length - 1; i++) {
+          if (Array.isArray(currentObj)) {
+            return true;
+          }
+          currentObj = currentObj[path[i]];
+        }
+        return false;
+      },
+    };
+  }
+</script>
