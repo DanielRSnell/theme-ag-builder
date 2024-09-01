@@ -462,6 +462,7 @@ function add_view_ui_container()
         $context = Timber::context();
         $context['post'] = Timber::get_post($post);
         $context['view_content'] = get_post_meta(get_the_ID(), '_agnostic_view_content', true);
+        $context['update_post_nonce'] = wp_create_nonce('update_post_content_' . $post->ID);
 
         Timber::render('admin/_views.twig', $context);
     }
@@ -523,7 +524,15 @@ function crb_attach_agnostic_view_fields()
                 ))
                 ->set_default_value(''),
             Field::make('select', 'view_target', __('View Target'))
-                ->set_options('get_view_target_options')
+                ->set_options(array(
+                    '' => '-- Select --',
+                    'single' => 'Single',
+                    'archive' => 'Archive',
+                    'search' => 'Search',
+                    '404' => '404',
+                    'login' => 'Login',
+                    'menu' => 'Menu',
+                ))
                 ->set_default_value('')
                 ->set_conditional_logic(array(
                     array(
@@ -533,7 +542,11 @@ function crb_attach_agnostic_view_fields()
                     ),
                 )),
             Field::make('select', 'view_type', __('View Type'))
-                ->set_options('ag_target_types')
+                ->set_options(
+                    // post types and taxonomies
+                    array(
+                    )
+                )
                 ->set_default_value('')
                 ->set_conditional_logic(array(
                     array(
@@ -577,3 +590,30 @@ add_action('rest_api_init', function () {
         // }
     ));
 });
+
+add_action('wp_ajax_update_post_content', 'handle_update_post_content');
+
+function handle_update_post_content()
+{
+    if (!wp_verify_nonce($_POST['nonce'], 'update_post_content_' . $_POST['post_id'])) {
+        wp_send_json_error(array('message' => 'Security check failed.'));
+    }
+
+    if (!current_user_can('edit_post', $_POST['post_id'])) {
+        wp_send_json_error(array('message' => 'You do not have permission to edit this post.'));
+    }
+
+    $post_id = intval($_POST['post_id']);
+    $content = wp_kses_post($_POST['content']);
+
+    $updated_post = wp_update_post(array(
+        'ID' => $post_id,
+        'post_content' => $content,
+    ), true);
+
+    if (is_wp_error($updated_post)) {
+        wp_send_json_error(array('message' => $updated_post->get_error_message()));
+    } else {
+        wp_send_json_success(array('message' => 'Post updated successfully.'));
+    }
+}

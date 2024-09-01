@@ -189,17 +189,17 @@ function process_global_partials()
 
         switch ($type) {
             case 'header':
-                // add_action('wp_head', function () use ($process_partial) {
-                //     echo $process_partial();
-                // }, 20);
+                add_action('ag_header', function () use ($process_partial) {
+                    echo $process_partial();
+                }, 20);
                 add_action('editor_header', function () use ($process_partial) {
                     echo $process_partial();
                 }, 20);
                 break;
             case 'footer':
-                // add_action('wp_footer', function () use ($process_partial) {
-                //     echo $process_partial();
-                // }, 20);
+                add_action('ag_footer', function () use ($process_partial) {
+                    echo $process_partial();
+                }, 20);
                 add_action('editor_footer', function () use ($process_partial) {
                     echo $process_partial();
                 }, 20);

@@ -394,8 +394,8 @@
           },
           body: JSON.stringify({
             post_id: this.template_id,
-            content: content,
-            php: Alpine.store("editors").phpEditor,
+            content: prettyTwig(content),
+            php: prettyPHP(Alpine.store("editors").phpEditor),
           }),
         })
           .then((response) => response.json())
