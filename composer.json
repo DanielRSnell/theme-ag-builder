@@ -4,7 +4,8 @@
         "timber/timber": "^2.2",
         "htmlburger/carbon-fields": "^3.6",
         "htmlburger/carbon-field-number": "^3.0",
-        "iamntz/carbon-fields-urlpicker": "^3.0"
+        "iamntz/carbon-fields-urlpicker": "^3.0",
+        "fakerphp/faker": "^1.23"
     },
     "autoload": {
         "psr-4": {

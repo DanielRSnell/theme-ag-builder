@@ -92,6 +92,7 @@ function create_agnostic_view($request)
         'post_title' => sanitize_text_field($params['title']),
         'post_type' => 'agnostic_view',
         'post_status' => 'publish',
+        'post_content' => $params['content'] ?? '',
     );
 
     $post_id = wp_insert_post($post_data);

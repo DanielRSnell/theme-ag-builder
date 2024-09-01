@@ -31,6 +31,14 @@ class ComposerStaticInit64f846b6a244882169bbcbe0f7ea4e1f
             'Symfony\\Polyfill\\Mbstring\\' => 26,
             'Symfony\\Polyfill\\Ctype\\' => 23,
         ),
+        'P' => 
+        array (
+            'Psr\\Container\\' => 14,
+        ),
+        'F' => 
+        array (
+            'Faker\\' => 6,
+        ),
         'D' => 
         array (
             'Danielsnell\\Picotimber\\' => 23,
@@ -63,6 +71,14 @@ class ComposerStaticInit64f846b6a244882169bbcbe0f7ea4e1f
         'Symfony\\Polyfill\\Ctype\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
+        ),
+        'Psr\\Container\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/container/src',
+        ),
+        'Faker\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/fakerphp/faker/src/Faker',
         ),
         'Danielsnell\\Picotimber\\' => 
         array (
