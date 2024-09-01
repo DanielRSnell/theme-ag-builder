@@ -617,3 +617,125 @@ function handle_update_post_content()
         wp_send_json_success(array('message' => 'Post updated successfully.'));
     }
 }
+
+// Carbon Fields setup
+add_action('carbon_fields_register_fields', 'crb_attach_agnostic_view_options');
+function crb_attach_agnostic_view_options()
+{
+    Container::make('term_meta', __('Category Properties'))
+        ->where('term_taxonomy', '=', 'component_category')
+        ->add_fields(array(
+            Field::make('text', 'crb_category_description', __('Category Description')),
+        ));
+
+    Container::make('term_meta', __('Type Properties'))
+        ->where('term_taxonomy', '=', 'component_type')
+        ->add_fields(array(
+            Field::make('text', 'crb_type_description', __('Type Description')),
+        ));
+
+    Container::make('post_meta', __('Component Details'))
+        ->where('post_type', '=', 'agnostic_view')
+        ->add_fields(array(
+            Field::make('set', 'crb_component_category', __('Component Category'))
+                ->add_options('get_component_category_options'),
+            Field::make('text', 'crb_component_type', __('Component Type')),
+        ));
+}
+
+// Function to get component category options
+function get_component_category_options()
+{
+    $terms = get_terms([
+        'taxonomy' => 'component_category',
+        'hide_empty' => false,
+    ]);
+    $options = [];
+    foreach ($terms as $term) {
+        $options[$term->slug] = $term->name;
+    }
+    return $options;
+}
+
+// Register the taxonomies
+function register_agnostic_view_taxonomies()
+{
+    register_taxonomy('component_category', 'agnostic_view', array(
+        'label' => __('Component Categories'),
+        'hierarchical' => true,
+        'show_ui' => true,
+        'show_admin_column' => true,
+        'query_var' => true,
+        'rewrite' => array('slug' => 'component-category'),
+    ));
+
+    register_taxonomy('component_type', 'agnostic_view', array(
+        'label' => __('Component Types'),
+        'hierarchical' => true,
+        'show_ui' => true,
+        'show_admin_column' => true,
+        'query_var' => true,
+        'rewrite' => array('slug' => 'component-type'),
+    ));
+}
+add_action('init', 'register_agnostic_view_taxonomies');
+
+// Add predefined terms for Component Category
+function add_unique_component_category_terms()
+{
+    $terms = array(
+        'Core',
+        'Application',
+        'Ecommerce',
+        'Education',
+        'Marketing',
+        'Publisher',
+    );
+
+    foreach ($terms as $term) {
+        $existing_term = term_exists($term, 'component_category');
+        if (!$existing_term) {
+            wp_insert_term($term, 'component_category');
+        } else {
+            // Check if the term exists with a different case
+            $all_terms = get_terms([
+                'taxonomy' => 'component_category',
+                'hide_empty' => false,
+            ]);
+            $term_exists_case_insensitive = false;
+            foreach ($all_terms as $existing_term) {
+                if (strtolower($existing_term->name) === strtolower($term)) {
+                    $term_exists_case_insensitive = true;
+                    break;
+                }
+            }
+            if (!$term_exists_case_insensitive) {
+                wp_insert_term($term, 'component_category');
+            }
+        }
+    }
+}
+add_action('init', 'add_unique_component_category_terms');
+
+// Function to remove duplicate terms (run once if needed)
+function remove_duplicate_component_category_terms()
+{
+    $terms = get_terms([
+        'taxonomy' => 'component_category',
+        'hide_empty' => false,
+    ]);
+
+    $unique_terms = [];
+    foreach ($terms as $term) {
+        $lower_name = strtolower($term->name);
+        if (!isset($unique_terms[$lower_name])) {
+            $unique_terms[$lower_name] = $term->term_id;
+        } else {
+            // If a duplicate is found, merge it with the existing term
+            wp_delete_term($term->term_id, 'component_category', [
+                'default' => $unique_terms[$lower_name],
+                'force_default' => true,
+            ]);
+        }
+    }
+}
