@@ -76,6 +76,11 @@ function get_all_themes()
             ),
         );
         $themes = array($default_theme);
+        // save the default theme
+        update_option('agnostic_themes', $themes);
+
+        // now get the themes again
+        $themes = get_option('agnostic_themes', array());
     }
 
     return new WP_REST_Response($themes, 200);

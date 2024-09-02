@@ -112,11 +112,12 @@
           class="text-xs font-semibold"
           x-text="`Code Editor (${$store.editors.language})`"
         ></span>
-        <div class="flex space-x-2">
-          <i class="text-xs ri-code-line"></i>
-          <i class="text-xs ri-braces-line"></i>
-          <i class="text-xs ri-brackets-line"></i>
-          <i class="text-xs ri-parentheses-line"></i>
+        <div class="flex space-x-4">
+          {# add tool tips #}
+          <i x-on:click="onSelectChild()" class="text-xs ri-corner-right-down-fill"></i>
+
+          <i x-on:click="onSelectParent()" class="text-xs ri-corner-right-up-fill"></i>
+          <i x-on:click="AgnosticState.tab = 'Build'" class="text-xs ri-code-line"></i>
         </div>
       </div>
 
