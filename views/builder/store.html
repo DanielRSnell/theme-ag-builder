@@ -44,7 +44,8 @@
             console.log('Check Populated', id, 'hiding: ', frameDoc.getElementById(id))
             const element = frameDoc.getElementById(id)
             if (element) {
-              element.style.display = 'none'
+              // Destroy the element
+              element.remove()
             } else {
               console.warn(`Element with id '${id}' not found in the preview frame`)
             }

@@ -313,7 +313,7 @@
         }
       },
       async syncLiveChangesBeforeRender(doc) {
-        // remove highlights 
+        // remove highlights
         window.removeHighlights();
         // Get Active Selectors
         const activeSelectors = window.AgnosticPreviewStore.activeSelectors;
@@ -339,37 +339,37 @@
         this.debounceQueueRender();
       },
       debounceQueueRender() {
-          // Clear any existing timer
-          if (this.debounceTimer) {
-            clearTimeout(this.debounceTimer);
-          }
+        // Clear any existing timer
+        if (this.debounceTimer) {
+          clearTimeout(this.debounceTimer);
+        }
 
-          // Remove the last queued render if it exists
-          if (this.renderQueue.length > 0) {
-            this.renderQueue.pop();
-          }
+        // Remove the last queued render if it exists
+        if (this.renderQueue.length > 0) {
+          this.renderQueue.pop();
+        }
 
-          // Queue a new render
-          const renderPromise = new Promise((resolve) => {
-            this.debounceTimer = setTimeout(() => {
-              this.timberRender();
-              resolve();
-            }, 1000);
-          });
+        // Queue a new render
+        const renderPromise = new Promise((resolve) => {
+          this.debounceTimer = setTimeout(() => {
+            this.timberRender();
+            resolve();
+          }, 1000);
+        });
 
-          this.renderQueue.push(renderPromise);
+        this.renderQueue.push(renderPromise);
 
-          // Process the queue
-          this.processRenderQueue();
+        // Process the queue
+        this.processRenderQueue();
       },
       async processRenderQueue() {
-      if (this.renderQueue.length > 0) {
-            // Wait for the last render in the queue to complete
-            await this.renderQueue[this.renderQueue.length - 1];
+        if (this.renderQueue.length > 0) {
+          // Wait for the last render in the queue to complete
+          await this.renderQueue[this.renderQueue.length - 1];
 
-            // Clear the queue
-            this.renderQueue = [];
-          }
+          // Clear the queue
+          this.renderQueue = [];
+        }
       },
       onSystemEditorUpdate(element, changedEditor, doc) {
         // Sync Monaco Editors with the updated element
@@ -448,6 +448,7 @@
         });
 
         this.debouncedResetHighlighterPositions();
+        Alpine.store("builder").prepareBuilder();
         this.postSwapActions();
       },
 
