@@ -622,25 +622,25 @@ function handle_update_post_content()
 add_action('carbon_fields_register_fields', 'crb_attach_agnostic_view_options');
 function crb_attach_agnostic_view_options()
 {
-    Container::make('term_meta', __('Category Properties'))
-        ->where('term_taxonomy', '=', 'component_category')
-        ->add_fields(array(
-            Field::make('text', 'crb_category_description', __('Category Description')),
-        ));
+    // Container::make('term_meta', __('Category Properties'))
+    //     ->where('term_taxonomy', '=', 'component_category')
+    //     ->add_fields(array(
+    //         Field::make('text', 'crb_category_description', __('Category Description')),
+    //     ));
 
-    Container::make('term_meta', __('Type Properties'))
-        ->where('term_taxonomy', '=', 'component_type')
-        ->add_fields(array(
-            Field::make('text', 'crb_type_description', __('Type Description')),
-        ));
+    // Container::make('term_meta', __('Type Properties'))
+    //     ->where('term_taxonomy', '=', 'component_type')
+    //     ->add_fields(array(
+    //         Field::make('text', 'crb_type_description', __('Type Description')),
+    //     ));
 
-    Container::make('post_meta', __('Component Details'))
-        ->where('post_type', '=', 'agnostic_view')
-        ->add_fields(array(
-            Field::make('set', 'crb_component_category', __('Component Category'))
-                ->add_options('get_component_category_options'),
-            Field::make('text', 'crb_component_type', __('Component Type')),
-        ));
+    // Container::make('post_meta', __('Component Details'))
+    //     ->where('post_type', '=', 'agnostic_view')
+    //     ->add_fields(array(
+    //         Field::make('set', 'crb_component_category', __('Component Category'))
+    //             ->add_options('get_component_category_options'),
+    //         Field::make('text', 'crb_component_type', __('Component Type')),
+    //     ));
 }
 
 // Function to get component category options
@@ -671,12 +671,13 @@ function register_agnostic_view_taxonomies()
 
     register_taxonomy('component_type', 'agnostic_view', array(
         'label' => __('Component Types'),
-        'hierarchical' => true,
+        'hierarchical' => false,
         'show_ui' => true,
         'show_admin_column' => true,
         'query_var' => true,
         'rewrite' => array('slug' => 'component-type'),
     ));
+
 }
 add_action('init', 'register_agnostic_view_taxonomies');
 

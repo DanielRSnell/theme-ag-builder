@@ -5,9 +5,9 @@ add_action('rest_api_init', function () {
     register_rest_route('agnostic/v1', '/views', array(
         'methods' => 'GET',
         'callback' => 'get_agnostic_views',
-        'permission_callback' => function () {
-            return current_user_can('edit_posts');
-        },
+        // 'permission_callback' => function () {
+        //     return current_user_can('edit_posts');
+        // },
     ));
 
     // Create a new view
@@ -45,6 +45,31 @@ add_action('rest_api_init', function () {
             return current_user_can('edit_posts');
         },
     ));
+
+    register_rest_route('agnostic/v1', '/views/grouped', array(
+        'methods' => 'GET',
+        'callback' => 'get_grouped_agnostic_views',
+        // 'permission_callback' => function () {
+        //     return current_user_can('edit_posts');
+        // },
+    ));
+
+    register_rest_route('agnostic/v1', '/views/(?P<category>[a-zA-Z0-9-]+)', array(
+        'methods' => 'GET',
+        'callback' => 'get_component_types_for_category',
+        // 'permission_callback' => function () {
+        //     return current_user_can('edit_posts');
+        // },
+    ));
+
+    register_rest_route('agnostic/v1', '/views/(?P<category>[a-zA-Z0-9-]+)/(?P<type>[a-zA-Z0-9-]+)', array(
+        'methods' => 'GET',
+        'callback' => 'get_components_for_category_and_type',
+        // 'permission_callback' => function () {
+        //     return current_user_can('edit_posts');
+        // },
+    ));
+
 });
 
 function get_agnostic_views()
@@ -260,4 +285,107 @@ function get_view_type_options()
     );
 
     return new WP_REST_Response($options, 200);
+}
+
+function get_grouped_agnostic_views()
+{
+    $args = array(
+        'post_type' => 'agnostic_view',
+        'posts_per_page' => -1,
+    );
+
+    $views = get_posts($args);
+    $grouped_views = array();
+
+    foreach ($views as $view) {
+        $categories = wp_get_post_terms($view->ID, 'component_category');
+        $type = carbon_get_post_meta($view->ID, 'crb_component_type');
+
+        if (!empty($categories) && !empty($type)) {
+            $category = $categories[0]->slug; // Assuming we're using the first category
+
+            if (!isset($grouped_views[$category])) {
+                $grouped_views[$category] = array();
+            }
+
+            if (!isset($grouped_views[$category][$type])) {
+                $grouped_views[$category][$type] = array();
+            }
+
+            $grouped_views[$category][$type][] = array(
+                'id' => $view->ID,
+                'title' => $view->post_title,
+            );
+        }
+    }
+
+    return new WP_REST_Response($grouped_views, 200);
+}
+
+function get_component_types_for_category($request)
+{
+    $category = $request['category'];
+
+    $args = array(
+        'post_type' => 'agnostic_view',
+        'posts_per_page' => -1,
+        'tax_query' => array(
+            array(
+                'taxonomy' => 'component_category',
+                'field' => 'slug',
+                'terms' => $category,
+            ),
+        ),
+    );
+
+    $views = get_posts($args);
+    $types = array();
+
+    foreach ($views as $view) {
+        $type = carbon_get_post_meta($view->ID, 'crb_component_type');
+        if (!empty($type)) {
+            if (!isset($types[$type])) {
+                $types[$type] = 0;
+            }
+            $types[$type]++;
+        }
+    }
+
+    return new WP_REST_Response($types, 200);
+}
+
+function get_components_for_category_and_type($request)
+{
+    $category = $request['category'];
+    $type = $request['type'];
+
+    $args = array(
+        'post_type' => 'agnostic_view',
+        'posts_per_page' => -1,
+        'tax_query' => array(
+            array(
+                'taxonomy' => 'component_category',
+                'field' => 'slug',
+                'terms' => $category,
+            ),
+        ),
+        'meta_query' => array(
+            array(
+                'key' => '_crb_component_type',
+                'value' => $type,
+            ),
+        ),
+    );
+
+    $views = get_posts($args);
+    $components = array();
+
+    foreach ($views as $view) {
+        $components[] = array(
+            'id' => $view->ID,
+            'title' => $view->post_title,
+        );
+    }
+
+    return new WP_REST_Response($components, 200);
 }
