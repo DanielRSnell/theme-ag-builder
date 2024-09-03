@@ -29,12 +29,12 @@
   </head>
 
   <body id="agnostic-builder" class="{{ body_class }}" x-ref="body">
-   {# <div id="builder-header">{% do action('editor_header') %}</div> make a client side function that adds header / footer in if the preperation allows for it. #}
+   <div id="builder-header"></div>
     <main id="agnostic-content">{{ template|raw }}</main>
 
     {{ function('wp_footer') }}
     {% do action('get_footer') %}
-    {# <div id="builder-footer">{% do action('editor_footer') %}</div> #}
+    <div id="builder-footer"></div>
     {{ function('echo_tailwind_autocomplete_scripts') }}
     <script>
       ;(function () {

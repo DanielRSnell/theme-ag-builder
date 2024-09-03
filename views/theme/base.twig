@@ -8,9 +8,34 @@
     <link rel="profile" href="http://gmpg.org/xfn/11" />
 
     <script src="https://unpkg.com/swup@4"></script>
+    <script src="https://unpkg.com/@swup/progress-plugin@3"></script>
+
     <script>
-      const swup = new Swup({ native: true })
+      const swup = new Swup({ native: true, containers: ['#main-content'], plugins: [new SwupProgressPlugin()] })
     </script>
+    <style>
+      html.is-changing .transition-fade {
+        view-transition-name: main;
+      }
+      ::view-transition-old(main) {
+        animation: fade 0.5s ease-in-out both;
+      }
+      ::view-transition-new(main) {
+        animation: fade 0.5s ease-in-out both reverse;
+      }
+      @keyframes fade {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+    </style>
 
     {{ function('wp_head')|raw }}
     {{ function('ag_get_user_tailwind_css_string')|raw }}
@@ -19,7 +44,7 @@
   <body>
     {{ function('wp_body_open')|raw }}
     {% do action('before_main') %}
-    <main id="swup">
+    <main id="main-content" view-transition-name="main">
       {% do action('ag_header') %}
       {% do action('before_content') %}
       {% block content %}
@@ -32,7 +57,8 @@
     {% do action('inject_footer_start') %}
     {{ function('wp_footer')|raw }}
     {% do action('inject_footer_end') %}
+<script src="//unpkg.com/alpinejs" defer></script>
 
-    <script src="//unpkg.com/alpinejs" defer></script>
   </body>
+  
 </html>
