@@ -122,7 +122,7 @@ function eventHandlers() {
       //   console.log('innerHTML changed:', value, value !== this.innerHTML, this.innerHTML);
       //     onBlockInnerHTMLChange(value);
       // });
-      Alpine.store('preview').reloadTailwindComilers();
+      // Alpine.store('preview').reloadTailwindComilers();
       this.$watch('selectedTag', (value) => {
         if (value !== this.selectedTag) {
         onChangeElTag(value);
