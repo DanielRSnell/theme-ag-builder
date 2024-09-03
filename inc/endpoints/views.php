@@ -1,75 +1,26 @@
 <?php
 // Register custom REST API endpoints for Agnostic Views
 add_action('rest_api_init', function () {
-    // Get all views
-    register_rest_route('agnostic/v1', '/views', array(
-        'methods' => 'GET',
-        'callback' => 'get_agnostic_views',
-        // 'permission_callback' => function () {
-        //     return current_user_can('edit_posts');
-        // },
-    ));
+    $routes = array(
+        array('route' => '/views', 'methods' => 'GET', 'callback' => 'get_agnostic_views'),
+        array('route' => '/views', 'methods' => 'POST', 'callback' => 'create_agnostic_view'),
+        array('route' => '/views/(?P<id>\d+)', 'methods' => 'PUT', 'callback' => 'update_agnostic_view'),
+        array('route' => '/views/(?P<id>\d+)', 'methods' => 'DELETE', 'callback' => 'delete_agnostic_view'),
+        array('route' => '/view-types', 'methods' => 'GET', 'callback' => 'get_view_type_options'),
+        array('route' => '/views/grouped', 'methods' => 'GET', 'callback' => 'get_grouped_agnostic_views'),
+        array('route' => '/views/grouped/(?P<category>[a-zA-Z0-9-]+)', 'methods' => 'GET', 'callback' => 'get_component_types_for_category'),
+        array('route' => '/views/grouped/(?P<category>[a-zA-Z0-9-]+)/(?P<type>[a-zA-Z0-9-]+)', 'methods' => 'GET', 'callback' => 'get_components_for_category_and_type'),
+    );
 
-    // Create a new view
-    register_rest_route('agnostic/v1', '/views', array(
-        'methods' => 'POST',
-        'callback' => 'create_agnostic_view',
-        'permission_callback' => function () {
-            return current_user_can('edit_posts');
-        },
-    ));
-
-    // Update an existing view
-    register_rest_route('agnostic/v1', '/views/(?P<id>\d+)', array(
-        'methods' => 'PUT',
-        'callback' => 'update_agnostic_view',
-        'permission_callback' => function () {
-            return current_user_can('edit_posts');
-        },
-    ));
-
-    // Delete a view
-    register_rest_route('agnostic/v1', '/views/(?P<id>\d+)', array(
-        'methods' => 'DELETE',
-        'callback' => 'delete_agnostic_view',
-        'permission_callback' => function () {
-            return current_user_can('edit_posts');
-        },
-    ));
-
-    // Get view types
-    register_rest_route('agnostic/v1', '/view-types', array(
-        'methods' => 'GET',
-        'callback' => 'get_view_type_options',
-        'permission_callback' => function () {
-            return current_user_can('edit_posts');
-        },
-    ));
-
-    register_rest_route('agnostic/v1', '/views/grouped', array(
-        'methods' => 'GET',
-        'callback' => 'get_grouped_agnostic_views',
-        // 'permission_callback' => function () {
-        //     return current_user_can('edit_posts');
-        // },
-    ));
-
-    register_rest_route('agnostic/v1', '/views/(?P<category>[a-zA-Z0-9-]+)', array(
-        'methods' => 'GET',
-        'callback' => 'get_component_types_for_category',
-        // 'permission_callback' => function () {
-        //     return current_user_can('edit_posts');
-        // },
-    ));
-
-    register_rest_route('agnostic/v1', '/views/(?P<category>[a-zA-Z0-9-]+)/(?P<type>[a-zA-Z0-9-]+)', array(
-        'methods' => 'GET',
-        'callback' => 'get_components_for_category_and_type',
-        // 'permission_callback' => function () {
-        //     return current_user_can('edit_posts');
-        // },
-    ));
-
+    foreach ($routes as $route) {
+        register_rest_route('agnostic/v1', $route['route'], array(
+            'methods' => $route['methods'],
+            'callback' => $route['callback'],
+            'permission_callback' => function () {
+                return current_user_can('edit_posts');
+            },
+        ));
+    }
 });
 
 function get_agnostic_views()
@@ -126,19 +77,27 @@ function create_agnostic_view($request)
         return new WP_Error('failed-to-create', 'Failed to create the view', array('status' => 500));
     }
 
-    // Update Carbon Fields
-    carbon_set_post_meta($post_id, 'view_is', sanitize_text_field($params['view_is'] ?? ''));
+    // Update post meta
+    update_post_meta($post_id, '_view_is', sanitize_text_field($params['view_is'] ?? ''));
 
     if ($params['view_is'] !== 'component') {
-        carbon_set_post_meta($post_id, 'view_target', sanitize_text_field($params['view_target'] ?? ''));
+        update_post_meta($post_id, '_view_target', sanitize_text_field($params['view_target'] ?? ''));
 
         if (!empty($params['view_target'])) {
-            carbon_set_post_meta($post_id, 'view_type', sanitize_text_field($params['view_type'] ?? ''));
+            update_post_meta($post_id, '_view_type', sanitize_text_field($params['view_type'] ?? ''));
         }
 
         if ($params['view_target'] === 'single') {
-            carbon_set_post_meta($post_id, 'ag_if_single', absint($params['if_single'] ?? 0));
+            update_post_meta($post_id, '_ag_if_single', absint($params['if_single'] ?? 0));
         }
+    }
+
+    // Set component category and type
+    if (!empty($params['component_category'])) {
+        wp_set_object_terms($post_id, $params['component_category'], 'component_category');
+    }
+    if (!empty($params['component_type'])) {
+        wp_set_object_terms($post_id, $params['component_type'], 'component_type');
     }
 
     $response_data = array(
@@ -182,27 +141,35 @@ function update_agnostic_view($request)
         return new WP_Error('failed-to-update', 'Failed to update the view', array('status' => 500));
     }
 
-    // Update Carbon Fields
-    carbon_set_post_meta($post_id, 'view_is', sanitize_text_field($params['view_is'] ?? ''));
+    // Update post meta
+    update_post_meta($post_id, '_view_is', sanitize_text_field($params['view_is'] ?? ''));
 
     if ($params['view_is'] !== 'component') {
-        carbon_set_post_meta($post_id, 'view_target', sanitize_text_field($params['view_target'] ?? ''));
+        update_post_meta($post_id, '_view_target', sanitize_text_field($params['view_target'] ?? ''));
 
         if (!empty($params['view_target'])) {
-            carbon_set_post_meta($post_id, 'view_type', sanitize_text_field($params['view_type'] ?? ''));
+            update_post_meta($post_id, '_view_type', sanitize_text_field($params['view_type'] ?? ''));
         } else {
-            carbon_delete_post_meta($post_id, 'view_type');
+            delete_post_meta($post_id, '_view_type');
         }
 
         if ($params['view_target'] === 'single') {
-            carbon_set_post_meta($post_id, 'ag_if_single', absint($params['if_single'] ?? 0));
+            update_post_meta($post_id, '_ag_if_single', absint($params['if_single'] ?? 0));
         } else {
-            carbon_delete_post_meta($post_id, 'ag_if_single');
+            delete_post_meta($post_id, '_ag_if_single');
         }
     } else {
-        carbon_delete_post_meta($post_id, 'view_target');
-        carbon_delete_post_meta($post_id, 'view_type');
-        carbon_delete_post_meta($post_id, 'ag_if_single');
+        delete_post_meta($post_id, '_view_target');
+        delete_post_meta($post_id, '_view_type');
+        delete_post_meta($post_id, '_ag_if_single');
+    }
+
+    // Update component category and type
+    if (isset($params['component_category'])) {
+        wp_set_object_terms($post_id, $params['component_category'], 'component_category');
+    }
+    if (isset($params['component_type'])) {
+        wp_set_object_terms($post_id, $params['component_type'], 'component_type');
     }
 
     $response_data = array(
@@ -299,27 +266,33 @@ function get_grouped_agnostic_views()
 
     foreach ($views as $view) {
         $categories = wp_get_post_terms($view->ID, 'component_category');
-        $type = carbon_get_post_meta($view->ID, 'crb_component_type');
+        $types = wp_get_post_terms($view->ID, 'component_type');
 
-        if (!empty($categories) && !empty($type)) {
+        if (!empty($categories) && !empty($types)) {
             $category = $categories[0]->slug; // Assuming we're using the first category
 
             if (!isset($grouped_views[$category])) {
                 $grouped_views[$category] = array();
             }
 
-            if (!isset($grouped_views[$category][$type])) {
-                $grouped_views[$category][$type] = array();
+            foreach ($types as $type) {
+                if (!isset($grouped_views[$category][$type->slug])) {
+                    $grouped_views[$category][$type->slug] = 0;
+                }
+                $grouped_views[$category][$type->slug]++;
             }
-
-            $grouped_views[$category][$type][] = array(
-                'id' => $view->ID,
-                'title' => $view->post_title,
-            );
         }
     }
 
-    return new WP_REST_Response($grouped_views, 200);
+    // Reformat the data to match the desired structure
+    $formatted_views = array();
+    foreach ($grouped_views as $category => $types) {
+        $formatted_views[$category] = array_map(function ($name, $count) {
+            return array('name' => $name, 'count' => $count);
+        }, array_keys($types), $types);
+    }
+
+    return new WP_REST_Response($formatted_views, 200);
 }
 
 function get_component_types_for_category($request)
@@ -342,12 +315,12 @@ function get_component_types_for_category($request)
     $types = array();
 
     foreach ($views as $view) {
-        $type = carbon_get_post_meta($view->ID, 'crb_component_type');
-        if (!empty($type)) {
-            if (!isset($types[$type])) {
-                $types[$type] = 0;
+        $view_types = wp_get_post_terms($view->ID, 'component_type');
+        foreach ($view_types as $type) {
+            if (!isset($types[$type->slug])) {
+                $types[$type->slug] = 0;
             }
-            $types[$type]++;
+            $types[$type->slug]++;
         }
     }
 
@@ -363,16 +336,16 @@ function get_components_for_category_and_type($request)
         'post_type' => 'agnostic_view',
         'posts_per_page' => -1,
         'tax_query' => array(
+            'relation' => 'AND',
             array(
                 'taxonomy' => 'component_category',
                 'field' => 'slug',
                 'terms' => $category,
             ),
-        ),
-        'meta_query' => array(
             array(
-                'key' => '_crb_component_type',
-                'value' => $type,
+                'taxonomy' => 'component_type',
+                'field' => 'slug',
+                'terms' => $type,
             ),
         ),
     );
@@ -389,3 +362,76 @@ function get_components_for_category_and_type($request)
 
     return new WP_REST_Response($components, 200);
 }
+
+// Add predefined terms for Component Category
+function add_unique_component_category_terms()
+{
+    $terms = array(
+        'Core',
+        'Application',
+        'Ecommerce',
+        'Education',
+        'Marketing',
+        'Publisher',
+    );
+
+    foreach ($terms as $term) {
+        $existing_term = term_exists($term, 'component_category');
+        if (!$existing_term) {
+            wp_insert_term($term, 'component_category');
+        } else {
+            // Check if the term exists with a different case
+            $all_terms = get_terms([
+                'taxonomy' => 'component_category',
+                'hide_empty' => false,
+            ]);
+            $term_exists_case_insensitive = false;
+            foreach ($all_terms as $existing_term) {
+                if (strtolower($existing_term->name) === strtolower($term)) {
+                    $term_exists_case_insensitive = true;
+                    break;
+                }
+            }
+            if (!$term_exists_case_insensitive) {
+                wp_insert_term($term, 'component_category');
+            }
+        }
+    }
+}
+add_action('init', 'add_unique_component_category_terms');
+
+// Function to add .twig as an editable file type in WordPress
+function add_twig_mime_type($mime_types)
+{
+    $mime_types['twig'] = 'text/plain'; // Treat .twig files as plain text
+    return $mime_types;
+}
+add_filter('upload_mimes', 'add_twig_mime_type');
+
+// Function to allow .twig file uploads
+function allow_twig_upload($data, $file, $filename, $mimes)
+{
+    $wp_filetype = wp_check_filetype($filename, $mimes);
+
+    if ($wp_filetype['ext'] === false && preg_match('/\.twig$/i', $filename)) {
+        $wp_filetype['ext'] = 'twig';
+        $wp_filetype['type'] = 'text/plain';
+    }
+
+    return array(
+        'ext' => $wp_filetype['ext'],
+        'type' => $wp_filetype['type'],
+        'proper_filename' => $filename,
+    );
+}
+add_filter('wp_check_filetype_and_ext', 'allow_twig_upload', 10, 4);
+
+// Function to display .twig files in the media library
+function display_twig_in_media_library($result, $path)
+{
+    if (preg_match('/\.twig$/i', $path)) {
+        $result = true;
+    }
+    return $result;
+}
+add_filter('file_is_displayable_image', 'display_twig_in_media_library', 10, 2);
