@@ -89,7 +89,8 @@ function groupedComponentsViewer() {
             if (!this.selectedCategory || !this.selectedType) return;
             
             try {
-                const response = await fetch(`/wp-json/agnostic/v1/views/grouped/${this.selectedCategory}/${this.selectedType}`);
+                const format = this.selectedType.split(' ').join('-').toLowerCase();
+                const response = await fetch(`/wp-json/agnostic/v1/views/grouped/${this.selectedCategory}/${format}`);
                 const result = await response.json();
                 this.componentsHtml = result.html;
                 this.$nextTick(() => {
