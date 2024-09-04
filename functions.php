@@ -1,6 +1,10 @@
 <?php
 use Faker\Factory;
 
+define('DISALLOW_UNFILTERED_HTML', true);
+define('DISALLOW_FILE_EDIT', true);
+define('DISALLOW_FILE_MODS', true);
+
 // autoload
 require_once __DIR__ . '/vendor/autoload.php';
 
