@@ -186,41 +186,20 @@ function create_agnostic_query($request)
     $term_id = $term['term_id'];
     $query_json = $params['query_json'];
     $query_json['type'] = $params['type'];
-
-    $encoded_query_json = wp_json_encode($query_json);
-    if ($encoded_query_json === false) {
-        return new WP_Error('json_encode_failed', 'Failed to encode query JSON', array('status' => 500));
-    }
-
-    $meta_update_result = carbon_set_term_meta($term_id, 'ag_query_json', $encoded_query_json);
-
-    $meta_update_error = null;
-    if ($meta_update_result === false) {
-        $meta_update_error = 'Failed to update term meta';
-    }
+    carbon_set_term_meta($term_id, 'ag_query_json', wp_json_encode($query_json));
 
     if (isset($params['template_id']) && $params['isActive']) {
         wp_set_object_terms($params['template_id'], $term_id, 'agnostic_queries', true);
     }
 
-    $response_data = array(
+    return new WP_REST_Response(array(
         'id' => $term_id,
         'name' => $params['name'],
         'type' => $params['type'],
         'query_json' => $query_json,
         'isActive' => $params['isActive'] ?? false,
         'params' => $params,
-        'meta_update_result' => $meta_update_result,
-        'meta_update_error' => $meta_update_error,
-        'current_term_meta' => carbon_get_term_meta($term_id, 'ag_query_json'),
-    );
-
-    if ($meta_update_error) {
-        $response_data['error'] = $meta_update_error;
-        return new WP_REST_Response($response_data, 500);
-    }
-
-    return new WP_REST_Response($response_data, 201);
+    ), 201);
 }
 
 function update_agnostic_query($request)
