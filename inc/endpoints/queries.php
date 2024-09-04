@@ -198,6 +198,7 @@ function create_agnostic_query($request)
         'type' => $params['type'],
         'query_json' => $query_json,
         'isActive' => $params['isActive'] ?? false,
+        'params' => $params,
     ), 201);
 }
 
