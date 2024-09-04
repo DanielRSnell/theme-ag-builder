@@ -47,19 +47,23 @@ class AgnosticViewsAPI
         $localViews = $this->localDataProvider->getGroupedViews();
         $remoteViews = $this->dataFetcher->fetch('/views/grouped');
 
-        $response = [
-            'data' => $localViews,
-            'error' => null,
-        ];
+        $mergedData = $localViews;
+        $error = null;
 
         if (is_wp_error($remoteViews)) {
-            $response['error'] = [
+            $error = [
                 'target' => $this->dataFetcher->getLastRequestedUrl(),
                 'message' => $remoteViews->get_error_message(),
             ];
-        } else {
-            $response['data'] = $this->dataMerger->merge($localViews, $remoteViews);
+        } elseif (isset($remoteViews['data']) && is_array($remoteViews['data'])) {
+            $mergedData = $this->dataMerger->merge($mergedData, $remoteViews['data']);
+            $error = $remoteViews['error'] ?? null;
         }
+
+        $response = [
+            'data' => $mergedData,
+            'error' => $error,
+        ];
 
         return new WP_REST_Response(apply_filters('agnostic_grouped_views', $response), 200);
     }
@@ -70,20 +74,24 @@ class AgnosticViewsAPI
         $localTypes = $this->localDataProvider->getComponentTypesForCategory($category);
         $allRemoteViews = $this->dataFetcher->fetch("/views/grouped");
 
-        $response = [
-            'data' => $localTypes,
-            'error' => null,
-        ];
+        $mergedTypes = $localTypes;
+        $error = null;
 
         if (is_wp_error($allRemoteViews)) {
-            $response['error'] = [
+            $error = [
                 'target' => $this->dataFetcher->getLastRequestedUrl(),
                 'message' => $allRemoteViews->get_error_message(),
             ];
-        } else {
-            $remoteTypes = $allRemoteViews[$category] ?? [];
-            $response['data'] = $this->dataMerger->mergeTypes($localTypes, $remoteTypes);
+        } elseif (isset($allRemoteViews['data'][$category])) {
+            $remoteTypes = $allRemoteViews['data'][$category];
+            $mergedTypes = $this->dataMerger->mergeTypes($localTypes, $remoteTypes);
+            $error = $allRemoteViews['error'] ?? null;
         }
+
+        $response = [
+            'data' => $mergedTypes,
+            'error' => $error,
+        ];
 
         return new WP_REST_Response(apply_filters('agnostic_component_types_for_category', $response, $category), 200);
     }
@@ -95,28 +103,31 @@ class AgnosticViewsAPI
         $local_components = $this->getLocalComponents($category, $type);
         $remote_components = $this->getRemoteComponents($category, $type);
 
-        $response = [
-            'data' => $local_components,
-            'error' => null,
-        ];
+        $mergedComponents = $local_components;
+        $error = null;
 
         if (is_wp_error($remote_components)) {
-            $response['error'] = [
+            $error = [
                 'target' => $this->dataFetcher->getLastRequestedUrl(),
                 'message' => $remote_components->get_error_message(),
             ];
         } else {
-            $response['data'] = array_merge($local_components, $remote_components);
+            $mergedComponents = array_merge($local_components, $remote_components);
         }
 
-        $components = apply_filters('agnostic_components_for_category_and_type', $response['data'], $category, $type);
+        $components = apply_filters('agnostic_components_for_category_and_type', $mergedComponents, $category, $type);
         $context = [
             'category' => $category,
             'type' => $type,
             'components' => $components,
         ];
         $html = $this->renderComponentsHtml($context);
-        $response['html'] = $html;
+
+        $response = [
+            'data' => $mergedComponents,
+            'html' => $html,
+            'error' => $error,
+        ];
 
         return new WP_REST_Response($response, 200);
     }
@@ -150,19 +161,23 @@ class AgnosticViewsAPI
         $localCategories = $this->localDataProvider->getComponentCategories();
         $remoteCategories = $this->dataFetcher->fetch('/views/options/category');
 
-        $response = [
-            'data' => $localCategories,
-            'error' => null,
-        ];
+        $mergedCategories = $localCategories;
+        $error = null;
 
         if (is_wp_error($remoteCategories)) {
-            $response['error'] = [
+            $error = [
                 'target' => $this->dataFetcher->getLastRequestedUrl(),
                 'message' => $remoteCategories->get_error_message(),
             ];
-        } else {
-            $response['data'] = array_merge($localCategories, $remoteCategories);
+        } elseif (isset($remoteCategories['data'])) {
+            $mergedCategories = array_merge($localCategories, $remoteCategories['data']);
+            $error = $remoteCategories['error'] ?? null;
         }
+
+        $response = [
+            'data' => $mergedCategories,
+            'error' => $error,
+        ];
 
         return new WP_REST_Response(apply_filters('agnostic_component_categories', $response), 200);
     }
@@ -172,19 +187,23 @@ class AgnosticViewsAPI
         $localTypes = $this->localDataProvider->getComponentTypes();
         $remoteTypes = $this->dataFetcher->fetch('/views/options/types');
 
-        $response = [
-            'data' => $localTypes,
-            'error' => null,
-        ];
+        $mergedTypes = $localTypes;
+        $error = null;
 
         if (is_wp_error($remoteTypes)) {
-            $response['error'] = [
+            $error = [
                 'target' => $this->dataFetcher->getLastRequestedUrl(),
                 'message' => $remoteTypes->get_error_message(),
             ];
-        } else {
-            $response['data'] = array_merge($localTypes, $remoteTypes);
+        } elseif (isset($remoteTypes['data'])) {
+            $mergedTypes = array_merge($localTypes, $remoteTypes['data']);
+            $error = $remoteTypes['error'] ?? null;
         }
+
+        $response = [
+            'data' => $mergedTypes,
+            'error' => $error,
+        ];
 
         return new WP_REST_Response(apply_filters('agnostic_component_types', $response), 200);
     }
@@ -200,14 +219,12 @@ interface DataFetcherInterface
 class RemoteDataFetcher implements DataFetcherInterface
 {
     private $baseUrl;
-    private $cacheExpiration;
     private $lastRequestedUrl;
     private $isSelfRequest;
 
-    public function __construct($baseUrl, $cacheExpiration = WEEK_IN_SECONDS)
+    public function __construct($baseUrl)
     {
         $this->baseUrl = $baseUrl;
-        $this->cacheExpiration = $cacheExpiration;
         $this->isSelfRequest = $this->checkIfSelfRequest($baseUrl);
     }
 
@@ -217,13 +234,6 @@ class RemoteDataFetcher implements DataFetcherInterface
 
         if ($this->isSelfRequest) {
             return new WP_Error('self_request', 'Skipping remote request to self');
-        }
-
-        $cacheKey = 'agnostic_remote_data_' . md5($this->lastRequestedUrl);
-        $cachedData = get_transient($cacheKey);
-
-        if ($cachedData !== false) {
-            return $cachedData;
         }
 
         $response = wp_remote_get($this->lastRequestedUrl);
@@ -242,8 +252,6 @@ class RemoteDataFetcher implements DataFetcherInterface
         if (json_last_error() !== JSON_ERROR_NONE) {
             return new WP_Error('json_decode_error', 'Failed to decode JSON response: ' . json_last_error_msg());
         }
-
-        set_transient($cacheKey, $data, $this->cacheExpiration);
 
         return $data;
     }
@@ -280,28 +288,26 @@ class DataMerger implements DataMergerInterface
 {
     public function merge($localData, $remoteData)
     {
-        $result = [];
-        foreach (array_unique(array_merge(array_keys($localData), array_keys($remoteData))) as $category) {
-            $result[$category] = $this->mergeCategory(
-                $localData[$category] ?? [],
-                $remoteData[$category] ?? []
-            );
+        $result = $localData;
+
+        foreach ($remoteData as $category => $items) {
+            if (!isset($result[$category])) {
+                $result[$category] = $items;
+            } else {
+                $result[$category] = $this->mergeCategory($result[$category], $items);
+            }
         }
+
         return $result;
     }
 
     public function mergeTypes($localTypes, $remoteTypes)
     {
-        if (!is_array($localTypes)) {
-            $localTypes = [];
-        }
-        if (!is_array($remoteTypes)) {
-            $remoteTypes = [];
-        }
-
         $mergedTypes = [];
-        foreach (array_merge($localTypes, $remoteTypes) as $type) {
-            if (!is_array($type) || !isset($type['name'])) {
+        $allTypes = array_merge($localTypes, $remoteTypes);
+
+        foreach ($allTypes as $type) {
+            if (!isset($type['name'])) {
                 continue;
             }
             $name = $type['name'];
@@ -311,21 +317,17 @@ class DataMerger implements DataMergerInterface
                 $mergedTypes[$name]['count'] = ($mergedTypes[$name]['count'] ?? 0) + ($type['count'] ?? 1);
             }
         }
+
         return array_values($mergedTypes);
     }
 
     private function mergeCategory($localItems, $remoteItems)
     {
-        if (!is_array($localItems)) {
-            $localItems = [];
-        }
-        if (!is_array($remoteItems)) {
-            $remoteItems = [];
-        }
-
         $mergedItems = [];
-        foreach (array_merge($localItems, $remoteItems) as $item) {
-            if (!is_array($item) || !isset($item['name'])) {
+        $allItems = array_merge($localItems, $remoteItems);
+
+        foreach ($allItems as $item) {
+            if (!isset($item['name'])) {
                 continue;
             }
             $name = $item['name'];
@@ -335,6 +337,7 @@ class DataMerger implements DataMergerInterface
                 $mergedItems[$name]['count'] = ($mergedItems[$name]['count'] ?? 0) + ($item['count'] ?? 1);
             }
         }
+
         return array_values($mergedItems);
     }
 }
@@ -423,8 +426,7 @@ class WPLocalDataProvider implements LocalDataProviderInterface
 
     public function getComponentsForCategoryAndType($category, $type)
     {
-        $args = [
-            'post_type' => 'agnostic_view',
+        $args = ['post_type' => 'agnostic_view',
             'posts_per_page' => -1,
             'tax_query' => [
                 'relation' => 'AND',

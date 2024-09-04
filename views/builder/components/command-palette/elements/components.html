@@ -35,6 +35,7 @@ function groupedComponentsViewer() {
         selectedType: '',
         categoryTypes: [],
         componentsHtml: '',
+        error: null,
 
         async init() {
             window.parent.ComponentsManager = this;
@@ -53,14 +54,21 @@ function groupedComponentsViewer() {
         async fetchGroupedViews() {
             try {
                 const response = await fetch('/wp-json/agnostic/v1/views/grouped');
-                this.groupedViews = await response.json();
-                if (!this.groupedViews['marketing']) {
-                    this.selectedCategory = Object.keys(this.groupedViews)[0];
-                    if (window.parent) {
-                        this.parentRefreshTailwind();
+                const result = await response.json();
+                if (result.error) {
+                    this.error = result.error.message;
+                    console.error('Error fetching grouped views:', result.error);
+                } else {
+                    this.groupedViews = result.data;
+                    if (!this.groupedViews['marketing']) {
+                        this.selectedCategory = Object.keys(this.groupedViews)[0];
+                        if (window.parent) {
+                            this.parentRefreshTailwind();
+                        }
                     }
                 }
             } catch (error) {
+                this.error = 'Failed to fetch grouped views';
                 console.error('Error fetching grouped views:', error);
             }
         },
@@ -77,8 +85,15 @@ function groupedComponentsViewer() {
         async fetchCategoryTypes() {
             try {
                 const response = await fetch(`/wp-json/agnostic/v1/views/grouped/${this.selectedCategory}`);
-                this.categoryTypes = await response.json();
+                const result = await response.json();
+                if (result.error) {
+                    this.error = result.error.message;
+                    console.error('Error fetching category types:', result.error);
+                } else {
+                    this.categoryTypes = result.data;
+                }
             } catch (error) {
+                this.error = 'Failed to fetch category types';
                 console.error('Error fetching category types:', error);
             }
         },
@@ -88,13 +103,19 @@ function groupedComponentsViewer() {
             
             try {
                 const response = await fetch(`/wp-json/agnostic/v1/views/grouped/${this.selectedCategory}/${this.selectedType}`);
-                const html = await response.text();
-                this.componentsHtml = html;
-                this.$nextTick(() => {
-                    this.refreshTW();
-                    this.initializeCodeHighlighting();
-                });
+                const result = await response.json();
+                if (result.error) {
+                    this.error = result.error.message;
+                    console.error('Error fetching components:', result.error);
+                } else {
+                    this.componentsHtml = result.html;
+                    this.$nextTick(() => {
+                        this.refreshTW();
+                        this.initializeCodeHighlighting();
+                    });
+                }
             } catch (error) {
+                this.error = 'Failed to fetch components';
                 console.error('Error fetching components:', error);
             }
         },
