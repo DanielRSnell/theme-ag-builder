@@ -18,8 +18,8 @@
                     </div>
 
                     <div x-show="tab === 'preview'" class="relative">
-                        <div class="overflow-x-hidden overflow-y-auto max-h-[500px]">
-                          <div class="w-full h-full">  {{ component.content|raw }}</div>
+                        <div class="w-full h-full max-h-[500px] overflow-x-hidden overflow-y-auto">
+                            {{ component.content|raw }}
                         </div>
                     </div>
 

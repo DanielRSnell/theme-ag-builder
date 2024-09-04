@@ -1,4 +1,7 @@
 <?php
+
+// add an endpoint to get all components or component by name / id for component fetching
+
 class AgnosticViewsAPI
 {
     private $dataFetcher;
