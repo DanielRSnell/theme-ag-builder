@@ -426,7 +426,7 @@ function reset_routing_data($request)
     update_option('agnostic_routing_data', $default_data);
     return new WP_REST_Response(array(
         'message' => 'Routing data has been reset to default',
-        $default_data,
+        'data' => $default_data,
     ), 200);
 }
 
