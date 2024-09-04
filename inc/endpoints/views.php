@@ -380,7 +380,7 @@ class WPLocalDataProvider implements LocalDataProviderInterface
     }
 }
 
-$dataFetcher = new RemoteDataFetcher('https://site.agnosticbuilder.com/wp-json/agnostic/v1');
+$dataFetcher = new RemoteDataFetcher('https://agnostic.broke.dev/wp-json/agnostic/v1');
 $dataMerger = new DataMerger();
 $localDataProvider = new WPLocalDataProvider();
 
