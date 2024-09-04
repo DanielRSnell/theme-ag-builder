@@ -1,9 +1,9 @@
 {% extends 'builder/frame.twig' %}
 
 {% block frameContent %}
-<div class="flex h-screen bg-base-100" x-data="groupedComponentsViewer()">
+<div class="flex h-screen max-h-screen bg-base-100" x-data="groupedComponentsViewer()">
     <!-- Left Sidebar -->
-    <div class="w-64 p-4 bg-base-200">
+    <div class="w-64 h-screen max-h-screen p-4 overflow-y-auto no-scrollbar bg-base-200">
         <select x-model="selectedCategory" @change="handleCategoryChange()" class="w-full mb-4 select select-bordered">
             <template x-for="category in Object.keys(groupedViews)" :key="category">
                 <option :value="category" x-text="category"></option>
