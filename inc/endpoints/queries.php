@@ -186,7 +186,17 @@ function create_agnostic_query($request)
     $term_id = $term['term_id'];
     $query_json = $params['query_json'];
     $query_json['type'] = $params['type'];
-    carbon_set_term_meta($term_id, 'ag_query_json', wp_json_encode($query_json));
+
+    $encoded_query_json = wp_json_encode($query_json);
+    if ($encoded_query_json === false) {
+        return new WP_Error('json_encode_failed', 'Failed to encode query JSON', array('status' => 500));
+    }
+
+    $meta_update_result = update_term_meta($term_id, 'ag_query_json', $encoded_query_json);
+
+    if ($meta_update_result === false) {
+        return new WP_Error('meta_update_failed', 'Failed to update term meta', array('status' => 500));
+    }
 
     if (isset($params['template_id']) && $params['isActive']) {
         wp_set_object_terms($params['template_id'], $term_id, 'agnostic_queries', true);
