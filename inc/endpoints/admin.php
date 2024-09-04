@@ -680,3 +680,24 @@ function register_agnostic_view_taxonomies()
 
 }
 add_action('init', 'register_agnostic_view_taxonomies');
+
+function initAgnosticViewsAPI()
+{
+    $remoteApiUrl = 'https://agnostic.broke.dev/wp-json/agnostic/v1';
+    $dataFetcher = new RemoteDataFetcher($remoteApiUrl);
+    $dataMerger = new DataMerger();
+    $localDataProvider = new WPLocalDataProvider();
+
+    $agnosticViewsAPI = new AgnosticViewsAPI($dataFetcher, $dataMerger, $localDataProvider);
+    $agnosticViewsAPI->registerRoutes();
+
+    if ($dataFetcher->isSelfRequest()) {
+        add_action('admin_notices', function () {
+            echo '<div class="notice notice-warning is-dismissible">';
+            echo '<p>AgnosticViewsAPI: Remote API URL matches the current site. Remote requests will be skipped.</p>';
+            echo '</div>';
+        });
+    }
+}
+
+add_action('init', 'initAgnosticViewsAPI');

@@ -1,7 +1,5 @@
 <?php
 
-// add an endpoint to get all components or component by name / id for component fetching
-
 class AgnosticViewsAPI
 {
     private $dataFetcher;
@@ -48,46 +46,79 @@ class AgnosticViewsAPI
     {
         $localViews = $this->localDataProvider->getGroupedViews();
         $remoteViews = $this->dataFetcher->fetch('/views/grouped');
-        $mergedViews = $this->dataMerger->merge($localViews, $remoteViews);
-        return new WP_REST_Response(apply_filters('agnostic_grouped_views', $mergedViews), 200);
+
+        $response = [
+            'data' => $localViews,
+            'error' => null,
+        ];
+
+        if (is_wp_error($remoteViews)) {
+            $response['error'] = [
+                'target' => $this->dataFetcher->getLastRequestedUrl(),
+                'message' => $remoteViews->get_error_message(),
+            ];
+        } else {
+            $response['data'] = $this->dataMerger->merge($localViews, $remoteViews);
+        }
+
+        return new WP_REST_Response(apply_filters('agnostic_grouped_views', $response), 200);
     }
 
     public function getComponentTypesForCategory($request)
     {
         $category = $request['category'];
         $localTypes = $this->localDataProvider->getComponentTypesForCategory($category);
-
-        // Fetch all grouped views
         $allRemoteViews = $this->dataFetcher->fetch("/views/grouped");
 
-        // Extract types for the specific category
-        $remoteTypes = $allRemoteViews[$category] ?? [];
+        $response = [
+            'data' => $localTypes,
+            'error' => null,
+        ];
 
-        $mergedTypes = $this->dataMerger->mergeTypes($localTypes, $remoteTypes);
-        return new WP_REST_Response(apply_filters('agnostic_component_types_for_category', $mergedTypes, $category), 200);
+        if (is_wp_error($allRemoteViews)) {
+            $response['error'] = [
+                'target' => $this->dataFetcher->getLastRequestedUrl(),
+                'message' => $allRemoteViews->get_error_message(),
+            ];
+        } else {
+            $remoteTypes = $allRemoteViews[$category] ?? [];
+            $response['data'] = $this->dataMerger->mergeTypes($localTypes, $remoteTypes);
+        }
+
+        return new WP_REST_Response(apply_filters('agnostic_component_types_for_category', $response, $category), 200);
     }
 
     public function getComponentsForCategoryAndType($request)
     {
         $category = $request['category'];
         $type = $request['type'];
-
         $local_components = $this->getLocalComponents($category, $type);
         $remote_components = $this->getRemoteComponents($category, $type);
-        $components = array_merge($local_components, $remote_components);
-        $components = apply_filters('agnostic_components_for_category_and_type', $components, $category, $type);
 
+        $response = [
+            'data' => $local_components,
+            'error' => null,
+        ];
+
+        if (is_wp_error($remote_components)) {
+            $response['error'] = [
+                'target' => $this->dataFetcher->getLastRequestedUrl(),
+                'message' => $remote_components->get_error_message(),
+            ];
+        } else {
+            $response['data'] = array_merge($local_components, $remote_components);
+        }
+
+        $components = apply_filters('agnostic_components_for_category_and_type', $response['data'], $category, $type);
         $context = [
             'category' => $category,
             'type' => $type,
             'components' => $components,
         ];
-
         $html = $this->renderComponentsHtml($context);
+        $response['html'] = $html;
 
-        header('Content-Type: text/html; charset=UTF-8');
-        echo $html;
-        exit();
+        return new WP_REST_Response($response, 200);
     }
 
     private function renderComponentsHtml($context)
@@ -103,6 +134,11 @@ class AgnosticViewsAPI
     private function getRemoteComponents($category, $type)
     {
         $remote_components = $this->dataFetcher->fetch("/views/grouped/{$category}/{$type}");
+
+        if (is_wp_error($remote_components)) {
+            return $remote_components;
+        }
+
         foreach ($remote_components as &$component) {
             $component['source'] = 'remote';
         }
@@ -113,41 +149,124 @@ class AgnosticViewsAPI
     {
         $localCategories = $this->localDataProvider->getComponentCategories();
         $remoteCategories = $this->dataFetcher->fetch('/views/options/category');
-        $mergedCategories = array_merge($localCategories, $remoteCategories);
-        return new WP_REST_Response(apply_filters('agnostic_component_categories', $mergedCategories), 200);
+
+        $response = [
+            'data' => $localCategories,
+            'error' => null,
+        ];
+
+        if (is_wp_error($remoteCategories)) {
+            $response['error'] = [
+                'target' => $this->dataFetcher->getLastRequestedUrl(),
+                'message' => $remoteCategories->get_error_message(),
+            ];
+        } else {
+            $response['data'] = array_merge($localCategories, $remoteCategories);
+        }
+
+        return new WP_REST_Response(apply_filters('agnostic_component_categories', $response), 200);
     }
 
     public function getComponentTypes()
     {
         $localTypes = $this->localDataProvider->getComponentTypes();
         $remoteTypes = $this->dataFetcher->fetch('/views/options/types');
-        $mergedTypes = array_merge($localTypes, $remoteTypes);
-        return new WP_REST_Response(apply_filters('agnostic_component_types', $mergedTypes), 200);
+
+        $response = [
+            'data' => $localTypes,
+            'error' => null,
+        ];
+
+        if (is_wp_error($remoteTypes)) {
+            $response['error'] = [
+                'target' => $this->dataFetcher->getLastRequestedUrl(),
+                'message' => $remoteTypes->get_error_message(),
+            ];
+        } else {
+            $response['data'] = array_merge($localTypes, $remoteTypes);
+        }
+
+        return new WP_REST_Response(apply_filters('agnostic_component_types', $response), 200);
     }
 }
 
 interface DataFetcherInterface
 {
     public function fetch($endpoint);
+    public function getLastRequestedUrl();
+    public function isSelfRequest();
 }
 
 class RemoteDataFetcher implements DataFetcherInterface
 {
     private $baseUrl;
+    private $cacheExpiration;
+    private $lastRequestedUrl;
+    private $isSelfRequest;
 
-    public function __construct($baseUrl)
+    public function __construct($baseUrl, $cacheExpiration = WEEK_IN_SECONDS)
     {
         $this->baseUrl = $baseUrl;
+        $this->cacheExpiration = $cacheExpiration;
+        $this->isSelfRequest = $this->checkIfSelfRequest($baseUrl);
     }
 
     public function fetch($endpoint)
     {
-        $response = wp_remote_get($this->baseUrl . $endpoint);
-        if (is_wp_error($response)) {
-            return [];
+        $this->lastRequestedUrl = $this->baseUrl . $endpoint;
+
+        if ($this->isSelfRequest) {
+            return new WP_Error('self_request', 'Skipping remote request to self');
         }
+
+        $cacheKey = 'agnostic_remote_data_' . md5($this->lastRequestedUrl);
+        $cachedData = get_transient($cacheKey);
+
+        if ($cachedData !== false) {
+            return $cachedData;
+        }
+
+        $response = wp_remote_get($this->lastRequestedUrl);
+        if (is_wp_error($response)) {
+            return new WP_Error('remote_fetch_error', 'Failed to fetch remote data: ' . $response->get_error_message());
+        }
+
+        $responseCode = wp_remote_retrieve_response_code($response);
+        if ($responseCode !== 200) {
+            return new WP_Error('remote_fetch_error', 'Remote server returned error code: ' . $responseCode);
+        }
+
         $body = wp_remote_retrieve_body($response);
-        return json_decode($body, true) ?: [];
+        $data = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return new WP_Error('json_decode_error', 'Failed to decode JSON response: ' . json_last_error_msg());
+        }
+
+        set_transient($cacheKey, $data, $this->cacheExpiration);
+
+        return $data;
+    }
+
+    public function getLastRequestedUrl()
+    {
+        return $this->lastRequestedUrl;
+    }
+
+    public function isSelfRequest()
+    {
+        return $this->isSelfRequest;
+    }
+
+    private function checkIfSelfRequest($baseUrl)
+    {
+        $homeUrl = trailingslashit(home_url());
+        $baseUrl = trailingslashit($baseUrl);
+
+        $baseUrlParts = explode('/wp-json/', $baseUrl);
+        $baseUrlRoot = trailingslashit($baseUrlParts[0]);
+
+        return $homeUrl === $baseUrlRoot;
     }
 }
 
@@ -379,10 +498,3 @@ class WPLocalDataProvider implements LocalDataProviderInterface
         return false;
     }
 }
-
-$dataFetcher = new RemoteDataFetcher('https://agnostic.broke.dev/wp-json/agnostic/v1');
-$dataMerger = new DataMerger();
-$localDataProvider = new WPLocalDataProvider();
-
-$agnosticViewsAPI = new AgnosticViewsAPI($dataFetcher, $dataMerger, $localDataProvider);
-$agnosticViewsAPI->registerRoutes();
