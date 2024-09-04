@@ -1,14 +1,34 @@
 <?php
 use Faker\Factory;
+
+// autoload
 require_once __DIR__ . '/vendor/autoload.php';
 
-// Initialize Timber
-Timber\Timber::init();
-Timber::$dirname = ['views'];
-Timber::$autoescape = false;
+// Define crb_load function in the global scope
+function crb_load()
+{
+    \Carbon_Fields\Carbon_Fields::boot();
+}
 
-// Initialize Carbon Fields
-\Carbon_Fields\Carbon_Fields::boot();
+if (!function_exists('your_theme_setup')):
+    function your_theme_setup()
+{
+        // Initialize Carbon Fields
+        add_action('after_setup_theme', 'crb_load');
+
+        // Initialize Timber
+        Timber\Timber::init();
+        Timber::$dirname = ['views'];
+        Timber::$autoescape = false;
+
+        // Add any other theme setup code here
+    }
+endif;
+
+// Ensure Carbon Fields is loaded early
+add_action('after_setup_theme', 'crb_load', 5);
+
+add_action('after_setup_theme', 'your_theme_setup');
 
 // Include required files
 require get_template_directory() . '/inc/timber/controller.php';
