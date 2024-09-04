@@ -4,6 +4,7 @@ use Faker\Factory;
 define('DISALLOW_UNFILTERED_HTML', true);
 define('DISALLOW_FILE_EDIT', true);
 define('DISALLOW_FILE_MODS', true);
+ini_set('max_input_vars', 10000);
 
 // autoload
 require_once __DIR__ . '/vendor/autoload.php';
