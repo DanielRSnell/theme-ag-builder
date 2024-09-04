@@ -199,6 +199,7 @@ function create_agnostic_query($request)
         'query_json' => $query_json,
         'isActive' => $params['isActive'] ?? false,
         'params' => $params,
+        'can_edit' => current_user_can('edit_posts'),
     ), 201);
 }
 
