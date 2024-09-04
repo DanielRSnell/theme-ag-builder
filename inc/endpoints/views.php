@@ -100,7 +100,7 @@ class AgnosticViewsAPI
     {
         $category = $request['category'];
         $type = $request['type'];
-        $local_components = $this->getLocalComponents($category, $type);
+        $local_components = $this->localDataProvider->getComponentsForCategoryAndType($category, $type);
         $remote_components = $this->getRemoteComponents($category, $type);
 
         $mergedComponents = $local_components;
@@ -137,22 +137,24 @@ class AgnosticViewsAPI
         return Timber::compile('_components.twig', $context);
     }
 
-    private function getLocalComponents($category, $type)
-    {
-        return $this->localDataProvider->getComponentsForCategoryAndType($category, $type);
-    }
-
     private function getRemoteComponents($category, $type)
     {
-        $remote_components = $this->dataFetcher->fetch("/views/grouped/{$category}/{$type}");
+        $response = $this->dataFetcher->fetch("/views/grouped/{$category}/{$type}");
 
-        if (is_wp_error($remote_components)) {
-            return $remote_components;
+        if (is_wp_error($response)) {
+            return $response;
         }
+
+        if (!is_array($response) || !isset($response['data']) || !is_array($response['data'])) {
+            return new WP_Error('invalid_response', 'Unexpected response format from remote API');
+        }
+
+        $remote_components = $response['data'];
 
         foreach ($remote_components as &$component) {
             $component['source'] = 'remote';
         }
+
         return $remote_components;
     }
 
@@ -426,7 +428,8 @@ class WPLocalDataProvider implements LocalDataProviderInterface
 
     public function getComponentsForCategoryAndType($category, $type)
     {
-        $args = ['post_type' => 'agnostic_view',
+        $args = [
+            'post_type' => 'agnostic_view',
             'posts_per_page' => -1,
             'tax_query' => [
                 'relation' => 'AND',
