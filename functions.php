@@ -10,8 +10,8 @@ function crb_load()
     \Carbon_Fields\Carbon_Fields::boot();
 }
 
-if (!function_exists('your_theme_setup')):
-    function your_theme_setup()
+if (!function_exists('ag_theme_setup')):
+    function ag_theme_setup()
 {
         // Initialize Carbon Fields
         add_action('after_setup_theme', 'crb_load');
@@ -28,7 +28,7 @@ endif;
 // Ensure Carbon Fields is loaded early
 add_action('after_setup_theme', 'crb_load', 5);
 
-add_action('after_setup_theme', 'your_theme_setup');
+add_action('after_setup_theme', 'ag_theme_setup');
 
 // Include required files
 require get_template_directory() . '/inc/timber/controller.php';
