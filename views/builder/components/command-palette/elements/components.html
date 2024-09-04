@@ -1,183 +1,115 @@
 {% extends 'builder/frame.twig' %}
 
 {% block frameContent %}
-<div class="w-full h-full mx-auto bg-base-100 max-w-7xl" x-data="ComponentsManager()" >
-    <div class="container px-4 py-8 mx-auto">
-        <div class="flex flex-col items-center justify-between mb-8 space-y-4 md:flex-row md:space-y-0 md:space-x-4">
-            <div class="tabs tabs-boxed">
-                <template x-for="tab in tabs" :key="tab">
-                    <a class="tab" 
-                       :class="{ 'tab-active': activeTab === tab }" 
-                       @click="changeTab(tab)" 
-                       x-text="formatTabName(tab)"></a>
-                </template>
-            </div>
-            <div class="flex space-x-4">
-                <select class="select select-bordered" x-model="selectedType" @change="filterItems()">
-                    <option value="">All Types</option>
-                    <option>Publisher</option>
-                    <option>Marketing</option>
-                    <option>Application</option>
-                    <option>Ecommerce</option>
-                    <option>Elearning</option>
-                </select>
-                <input type="text" placeholder="Search" class="input input-bordered" x-model="searchQuery" @input="filterItems()">
-            </div>
-        </div>
-
-        <div x-show="!showComponentList">
-            <template x-for="tab in tabs" :key="tab">
-                <div x-show="activeTab === tab" x-cloak>
-                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" :id="'tab-content-' + tab">
-                        <template x-for="(item, index) in filteredItems" :key="item.href">
-                            <div class="relative transition-all ease-in-out shadow-md opacity-0 hover:shadow-xl hover:shadow-primary/20 shadow-primary/10 card bg-base-200 ring-1 ring-primary/10" @click="selectComponent(item)">
-                                <div class="absolute top-2 right-2 badge badge-primary opacity-70" x-text="item.type"></div>
-                            
-                                <div class="items-center text-center card-body">
-                                    <h2 class="card-title" x-text="item.title"></h2>
-                                    <p class="text-base-content/70" x-text="`${item.count} components`"></p>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
+<div class="flex h-screen bg-base-100" x-data="groupedComponentsViewer()">
+    <!-- Left Sidebar -->
+    <div class="w-64 p-4 bg-base-200">
+        <select x-model="selectedCategory" @change="handleCategoryChange()" class="w-full mb-4 select select-bordered">
+            <template x-for="category in Object.keys(groupedViews)" :key="category">
+                <option :value="category" x-text="category"></option>
             </template>
-        </div>
-
-        <div x-show="showComponentList" class="grid grid-cols-1 gap-12">
-            <p x-text="'Number of components: ' + components.length"></p>
-            <template x-for="component in components" :key="component.name">
-                <div class="overflow-hidden shadow-xl card bg-base-100 ring-1 ring-primary/10 shadow-primary/10" x-data="{ tab: 'preview' }">
-                    <div class="p-0 pt-0 mt-0">
-                        <div class="flex items-center justify-between p-2 bg-base-200">
-                            <div class="inline-flex tabs tabs-boxed bg-base-300">
-                               <a :class="{ 'tab-active': tab === 'preview' }" 
-                                class="tab" 
-                                @click="tab = 'preview'">Preview</a>
-                                <a :class="{ 'tab-active': tab === 'code' }" 
-                                class="tab" 
-                                @click="tab = 'code'; 
-                                        $nextTick(() => hljs.highlightElement($refs[`code-${component.name}`]))">Code</a>
-                            </div>
-                            <button class="btn btn-ghost btn-sm" @click="copyCode(component.code)">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-4 h-4 stroke-current">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        
-                        <div x-show="tab === 'preview'" class="relative">
-                            
-                            <div class="overflow-hidden" x-html="component.code"></div>
-                        </div>
-                        
-                        <div x-show="tab === 'code'" class="p-4 bg-base mockup-code">
-                            <pre><code x-ref="code-${component.name}" class="language-html" x-text="component.code"></code></pre>
-                        </div>
-                    </div>
-                </div>
+        </select>
+        <ul class="w-full menu bg-base-100 rounded-box">
+            <template x-for="type in categoryTypes" :key="type.name">
+                <li>
+                    <a @click="setSelectedType(type.name)"
+                       :class="{ 'active': selectedType === type.name }">
+                        <span x-text="type.name"></span>
+                        <span class="badge badge-sm" x-text="type.count"></span>
+                    </a>
+                </li>
             </template>
-        </div>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div id="current-selection" class="flex-1 p-4 overflow-auto" x-html="componentsHtml">
     </div>
 </div>
 
-    <script>
-      function ComponentsManager() {
+<script>
+function groupedComponentsViewer() {
     return {
-        activeTab: 'page-sections',
-        tabs: [],
+        groupedViews: {},
+        selectedCategory: 'marketing',
         selectedType: '',
-        searchQuery: '',
-        activeComponent: null,
-        activeCategory: '',
-        activeType: '',
-        activeSection: '',
-        components: [],
-        showComponentList: false,
-        items: {},
+        categoryTypes: [],
+        componentsHtml: '',
 
         async init() {
             window.parent.ComponentsManager = this;
-            await this.fetchAllComponents();
-            this.initializeItems();
+            await this.fetchGroupedViews();
+            await this.handleCategoryChange();
         },
+        
         refreshTW() {
             window.refreshTW();
         },
-        async fetchAllComponents() {
+
+        parentRefreshTailwind() {
+            window.parent.refreshTailwind();
+        },
+
+        async fetchGroupedViews() {
             try {
-                const response = await fetch('/wp-json/agnostic/v1/components');
-                const data = await response.json();
-                this.items = data;
-                this.tabs = Object.keys(data);
+                const response = await fetch('/wp-json/agnostic/v1/views/grouped');
+                this.groupedViews = await response.json();
+                if (!this.groupedViews['marketing']) {
+                    this.selectedCategory = Object.keys(this.groupedViews)[0];
+                    if (window.parent) {
+                        this.parentRefreshTailwind();
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching grouped views:', error);
+            }
+        },
+
+        async handleCategoryChange() {
+            await this.fetchCategoryTypes();
+            if (this.categoryTypes.length > 0) {
+                await this.setSelectedType(this.categoryTypes[0].name);
+            } else {
+                this.componentsHtml = '';
+            }
+        },
+
+        async fetchCategoryTypes() {
+            try {
+                const response = await fetch(`/wp-json/agnostic/v1/views/grouped/${this.selectedCategory}`);
+                this.categoryTypes = await response.json();
+            } catch (error) {
+                console.error('Error fetching category types:', error);
+            }
+        },
+
+        async fetchComponents() {
+            if (!this.selectedCategory || !this.selectedType) return;
+            
+            try {
+                const response = await fetch(`/wp-json/agnostic/v1/views/grouped/${this.selectedCategory}/${this.selectedType}`);
+                const html = await response.text();
+                this.componentsHtml = html;
+                this.$nextTick(() => {
+                    this.refreshTW();
+                    this.initializeCodeHighlighting();
+                });
             } catch (error) {
                 console.error('Error fetching components:', error);
             }
         },
 
-        get filteredItems() {
-            return this.items[this.activeTab]?.filter(item => {
-                const typeMatch = !this.selectedType || item.type === this.selectedType;
-                const searchMatch = !this.searchQuery || item.title.toLowerCase().includes(this.searchQuery.toLowerCase());
-                return typeMatch && searchMatch;
-            }) || [];
+        async setSelectedType(type) {
+            this.selectedType = type;
+            await this.fetchComponents();
         },
 
-        formatTabName(tab) {
-            return tab.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-        },
-
-        initializeItems() {
-            this.$nextTick(() => {
-                this.animateItems();
+        initializeCodeHighlighting() {
+            document.querySelectorAll('pre code').forEach((block) => {
+                if (window.hljs) {
+                    window.hljs.highlightElement(block);
+                }
             });
-        },
-
-        changeTab(newTab) {
-            if (this.activeTab === newTab) return;
-            this.activeTab = newTab;
-            this.showComponentList = false;
-            this.$nextTick(() => {
-                this.animateItems();
-            });
-        },
-
-        filterItems() {
-            this.showComponentList = false;
-            this.$nextTick(() => {
-                this.animateItems();
-            });
-        },
-
-        animateItems() {
-            anime({
-                targets: `#tab-content-${this.activeTab} > div`,
-                opacity: [0, 1],
-                translateY: [20, 0],
-                delay: anime.stagger(100),
-                duration: 500,
-                easing: 'easeOutQuad'
-            });
-        },
-
-        async selectComponent(item) {
-            this.activeCategory = this.activeTab;
-            this.activeType = item.type;
-            this.activeSection = item.title;
-            await this.getComponents();
-            this.showComponentList = true;
-        },
-
-        async getComponents() {
-            console.log("Fetching components for:", this.activeCategory, this.activeType, this.activeSection);
-            try {
-                const response = await fetch(`/wp-json/agnostic/v1/components/${this.activeCategory}/${this.activeType}/${this.activeSection}`.split(' ').join('-').toLowerCase());
-                this.components = await response.json();
-                console.log("Fetched components:", this.components);
-            } catch (error) {
-                console.error('Error fetching specific components:', error);
-                this.components = [];
-            }
         },
 
         copyCode(code) {
@@ -189,5 +121,5 @@
         }
     }
 }
-    </script>
+</script>
 {% endblock %}

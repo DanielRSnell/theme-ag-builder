@@ -173,7 +173,7 @@
   </div>
 
   <div class="flex-grow p-8 overflow-y-auto bg-base-300">
-    <div class="h-full p-8 bg-base-100 rounded-3xl">
+    <div class="h-full bg-base-100 rounded-3xl">
       {{ include('admin/pages/_dashboard.html') }}
       {{ include('admin/pages/_views.html') }}
       {{ include('admin/pages/_create-view.html') }}
@@ -201,13 +201,21 @@ function agnosticSettings() {
     },
     setActiveMenuItem(id) {
       this.activeMenuItem = id;
+      window.refreshTailwind();
     },
     backToWordPress() {
       console.log('Navigating back to WordPress');
     },
-    async init() {
-      window.refreshTailwind();
-    }
+    // async init() {
+    //   window.refreshTailwind();
+    // }
   }
 }
+</script>
+
+<script>
+// after the DOM fully loads run window.refreshTailwind()
+window.addEventListener('DOMContentLoaded', (event) => {
+  window.refreshTailwind();
+});
 </script>

@@ -1,8 +1,8 @@
-<div x-show="activeMenuItem == 'router'" class="flex w-full h-full gap-4 rounded-3xl" x-data="settingsManager()" x-init="init()">
+<div x-show="activeMenuItem == 'router'" class="flex w-full h-full gap-4 p-6 rounded-3xl" x-data="settingsManager()" x-init="init()">
   <!-- Vertical Tab Navigation -->
   <div class="w-1/4 overflow-hidden overflow-y-auto rounded-3xl">
     <!-- Routing tabs as vertical join -->
-    <div x-show="settings_tab == 'Routing'" class="w-full text-left join join-vertical rounded-3xl">
+    <div x-show="settings_tab == 'Routing'" class="w-full px-24 text-left join join-vertical rounded-3xl">
       <template x-for="tab in tabs" :key="tab">
         <button 
           class="text-left btn join-item"

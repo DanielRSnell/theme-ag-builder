@@ -1,0 +1,33 @@
+<div id="current-selection" class="flex-1 p-4 overflow-auto">
+    <h2 class="mb-4 text-2xl font-bold">{{ category }} - {{ type }}</h2>
+    <p class="mb-4">Number of components: {{ components|length }}</p>
+    <div class="grid grid-cols-1 gap-12">
+        {% for component in components %}
+            <div class="overflow-hidden shadow-xl card bg-base-100 ring-1 ring-primary/10 shadow-primary/10" x-data="{ tab: 'preview' }">
+                <div class="p-0 pt-0 mt-0">
+                    <div class="flex items-center justify-between p-2 bg-base-200/70 glass">
+                        <div class="inline-flex tabs tabs-boxed bg-base-300">
+                            <a :class="{ 'tab-active': tab === 'preview' }" class="tab" @click="tab = 'preview'">Preview</a>
+                            <a :class="{ 'tab-active': tab === 'code' }" class="tab" @click="tab = 'code'; highlightCode('{{ component.id }}')">Code</a>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" @click="copyCode('{{ component.content|e('js') }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-4 h-4 stroke-current">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 002-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div x-show="tab === 'preview'" class="relative">
+                        <div class="overflow-x-hidden overflow-y-auto max-h-[500px]">
+                          <div class="w-full h-full">  {{ component.content|raw }}</div>
+                        </div>
+                    </div>
+
+                    <div x-show="tab === 'code'" class="p-4 bg-base mockup-code">
+                        <pre><code id="code-{{ component.id }}" class="language-html">{{ component.content|e('html') }}</code></pre>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
