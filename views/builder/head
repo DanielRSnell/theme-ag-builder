@@ -157,6 +157,8 @@
     // Return the modified HTML as a string
     return doc.documentElement.outerHTML;
   }
+
+  window.generateHTMLIds = GenerateSelectorIdentifiers;
 </script>
 
 <script>

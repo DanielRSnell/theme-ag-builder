@@ -1,6 +1,6 @@
 <div
   x-data="AgnosticPreview()"
-  class="h-screen my-auto transition-all duration-300 ease-in-out"
+  class="h-screen max-h-screen pb-12 my-auto transition-all duration-300 ease-in-out"
   x-bind:class="tab === 'Code' ? 'ml-[40%] w-[60%] mx-auto' : 'w-screen' "
 >
   <div

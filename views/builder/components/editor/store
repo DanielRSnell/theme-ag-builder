@@ -125,7 +125,13 @@
           Alpine.store("preview").doc.querySelector("#agnostic-content");
         return content;
       },
-
+      GenerateIDs() {
+        const doc = window.AgnosticPreviewStore.doc;
+        const updatedHTML = GenerateSelectorIdentifiers(
+          doc.querySelector("#agnostic-content").innerHTML
+        );
+        doc.querySelector("#agnostic-content").innerHTML = updatedHTML;
+      },
       async elementSelected(element, isSelected, isMultiselect) {
         let activeSelectors = await Alpine.store("preview").activeSelectors;
         const selector = `#${element.id}`;
@@ -194,6 +200,13 @@
         // Trim any extra whitespace at the beginning or end
         return unformattedClasses.trim();
       },
+      isValidHTML(str) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(str, "text/html");
+        return Array.from(doc.body.childNodes).some(
+          (node) => node.nodeType === 1
+        ); // check for element nodes
+      },
       syncEditors(changedEditor) {
         const activeSelectors = window.AgnosticPreviewStore.activeSelectors;
 
@@ -242,6 +255,11 @@
               // this.debouncedLiveRender();
               break;
             } else {
+              // check if this.innerHTML is valid HTML
+              if (!this.isValidHTML(this.innerHTML)) {
+                return;
+              }
+              // var html = GenerateSelectorIdentifiers(this.innerHTML);
               doc.querySelector(activeSelector).innerHTML = this.innerHTML;
             }
             break;
@@ -254,6 +272,10 @@
               // this.debouncedLiveRender();
               break;
             } else {
+              // check if this.outerHTML is valid HTML
+              if (!this.isValidHTML(this.outerHTML)) {
+                return;
+              }
               doc.querySelector(activeSelector).innerHTML = this.outerHTML;
             }
             break;
@@ -294,13 +316,9 @@
           // Get Agnostic Content from the doc
           const agnosticContent = doc.querySelector("#agnostic-content");
 
-          // Update the HTML with unique identifiers to the innerHTML
-          const updatedHTML = GenerateSelectorIdentifiers(
-            agnosticContent.innerHTML
-          );
-
-          // Update #agnostic-content.innerHTML with the updatedHTML
-          agnosticContent.innerHTML = updatedHTML;
+          //    const updatedHTML = GenerateSelectorIdentifiers(
+          //   agnosticContent.innerHTML
+          // );
 
           // if there is a activeSelector, sync the editors
           if (activeSelectors.length > 0) {
@@ -315,15 +333,18 @@
       async syncLiveChangesBeforeRender(doc) {
         // remove highlights
         window.removeHighlights();
-        // Get Active Selectors
+
+        // // Can we check if the HTML is valid
+
+        // // // Get Active Selectors
         const activeSelectors = window.AgnosticPreviewStore.activeSelectors;
 
-        // Get each of the elements from the activeSelectors using the doc
+        // // Get each of the elements from the activeSelectors using the doc
         const activeElements = activeSelectors.map((selector) =>
           doc.querySelector(selector)
         );
 
-        // Now update the iframe preview with the updates
+        // // Now update the iframe preview with the updates
         const frame = document.getElementById("agnostic-preview-window");
         const previewDoc = frame.contentDocument;
 
@@ -332,9 +353,17 @@
           const selector = `#${element.id}`;
           const previewElement = previewDoc.querySelector(selector);
           if (previewElement) {
-            previewElement.outerHTML = element.outerHTML;
+            // Check if element
+            previewElement.innerHTML = this.innerHTML;
           }
         });
+
+        // Update #agnostic-content with IDs
+        // const updatedHTML = GenerateSelectorIdentifiers(
+        //   doc.querySelector("#agnostic-content").innerHTML
+        // );
+
+        // doc.querySelector("#agnostic-content").innerHTML = updatedHTML;
 
         this.debounceQueueRender();
       },
@@ -424,6 +453,7 @@
       },
 
       performMorph(old, updated, config) {
+        // console.log("OLD", old, "UPDATED", updated);
         Alpine.morph(old, updated, {
           updating: (el, toEl, childrenOnly, skip) => {
             if (config.updating) config.updating(el, toEl, childrenOnly, skip);
@@ -451,7 +481,6 @@
         Alpine.store("builder").prepareBuilder();
         this.postSwapActions();
       },
-
       postSwapActions() {
         requestIdleCallback(() => {
           window.AgnosticTree.generateTreeHTML();
@@ -464,6 +493,7 @@
       },
 
       timberRender() {
+        this.GenerateIDs();
         console.log("SWAP: Timber Render triggered");
         const current = this.getCurrentContent(); // This is the current content in the preview
         const html = this.getCurrentRawContent().innerHTML; // This is the raw content from the editor

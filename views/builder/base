@@ -11,7 +11,7 @@
     }}
   </head>
   <body
-    class="overflow-hidden bg-neutral text-base-content"
+    class="h-full max-h-screen overflow-hidden bg-neutral text-base-content"
     x-cloak
   >
     {# {{ include("@components/loader") }} #}
