@@ -255,10 +255,6 @@
               // this.debouncedLiveRender();
               break;
             } else {
-              // check if this.innerHTML is valid HTML
-              if (!this.isValidHTML(this.innerHTML)) {
-                return;
-              }
               // var html = GenerateSelectorIdentifiers(this.innerHTML);
               doc.querySelector(activeSelector).innerHTML = this.innerHTML;
             }
@@ -272,10 +268,6 @@
               // this.debouncedLiveRender();
               break;
             } else {
-              // check if this.outerHTML is valid HTML
-              if (!this.isValidHTML(this.outerHTML)) {
-                return;
-              }
               doc.querySelector(activeSelector).innerHTML = this.outerHTML;
             }
             break;
@@ -316,10 +308,6 @@
           // Get Agnostic Content from the doc
           const agnosticContent = doc.querySelector("#agnostic-content");
 
-          //    const updatedHTML = GenerateSelectorIdentifiers(
-          //   agnosticContent.innerHTML
-          // );
-
           // if there is a activeSelector, sync the editors
           if (activeSelectors.length > 0) {
             const activeEl = doc.querySelector(activeSelector);
@@ -331,6 +319,8 @@
         }
       },
       async syncLiveChangesBeforeRender(doc) {
+        console.log("Live Changes Start");
+
         // remove highlights
         window.removeHighlights();
 
@@ -358,16 +348,10 @@
           }
         });
 
-        // Update #agnostic-content with IDs
-        // const updatedHTML = GenerateSelectorIdentifiers(
-        //   doc.querySelector("#agnostic-content").innerHTML
-        // );
-
-        // doc.querySelector("#agnostic-content").innerHTML = updatedHTML;
-
         this.debounceQueueRender();
       },
       debounceQueueRender() {
+        console.log("Debouncing Queue Render");
         // Clear any existing timer
         if (this.debounceTimer) {
           clearTimeout(this.debounceTimer);
@@ -381,6 +365,7 @@
         // Queue a new render
         const renderPromise = new Promise((resolve) => {
           this.debounceTimer = setTimeout(() => {
+            console.log("Debounced Render Triggered");
             this.timberRender();
             resolve();
           }, 1000);
