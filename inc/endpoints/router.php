@@ -146,11 +146,6 @@ function get_theme_view($type)
 // Process Header, Footer, and Hooks for Global Partials
 function process_global_partials()
 {
-    // Check if WooCommerce is active before proceeding
-    if (!class_exists('WooCommerce')) {
-        return;
-    }
-
     $routing_data = ag_get_routing_data();
     $global_partials = $routing_data['global_partials'] ?? [];
 
