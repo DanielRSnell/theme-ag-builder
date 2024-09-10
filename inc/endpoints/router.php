@@ -187,17 +187,17 @@ function process_global_partials()
                 add_action('ag_header', function () use ($process_partial) {
                     echo $process_partial();
                 }, 20);
-                add_action('editor_header', function () use ($process_partial) {
-                    echo $process_partial();
-                }, 20);
+                // add_action('editor_header', function () use ($process_partial) {
+                //     echo $process_partial();
+                // }, 20);
                 break;
             case 'footer':
                 add_action('ag_footer', function () use ($process_partial) {
                     echo $process_partial();
                 }, 20);
-                add_action('editor_footer', function () use ($process_partial) {
-                    echo $process_partial();
-                }, 20);
+                // add_action('editor_footer', function () use ($process_partial) {
+                //     echo $process_partial();
+                // }, 20);
                 break;
             case 'hook':
                 if ($hook_name) {
@@ -211,4 +211,4 @@ function process_global_partials()
 }
 
 // Call this function after WooCommerce has been loaded
-add_action('woocommerce_init', 'process_global_partials');
+add_action('init', 'process_global_partials');
